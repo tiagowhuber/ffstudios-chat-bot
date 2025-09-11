@@ -1,13 +1,6 @@
 # FFStudios Chat Bot
 
-A simple Telegram bot built with Python that can respond to basic commands and messages.
-
-## Features
-
-- Basic command handling (`/start`, `/help`, `/custom`)
-- Text message processing with keyword-based responses
-- Group chat support with bot mention handling
-- Environment variable configuration
+A simple Telegram bot built with Python destined to create and execute DB queries based on natural language
 
 ## Setup
 
@@ -56,20 +49,6 @@ A simple Telegram bot built with Python that can respond to basic commands and m
 python main.py
 ```
 
-## Commands
-
-- `/start` - Start the bot and get a welcome message
-- `/help` - Show available commands
-- `/custom` - Get a custom response
-
-## Message Responses
-
-The bot responds to certain keywords in messages:
-- "hello" → Greeting response
-- "how are you" → Status response  
-- "bye" → Goodbye response
-- Other messages → Default response
-
 ## Project Structure
 
 ```
@@ -88,7 +67,3 @@ ffstudios-chat-bot/
 3. Make your changes
 4. Test thoroughly
 5. Submit a pull request
-
-## License
-
-This project is open source and available under the [MIT License](LICENSE).
