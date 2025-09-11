@@ -7,8 +7,8 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
-from db import get_db_session
-from models import Inventory
+from ..database.db import get_db_session
+from ..database.models import Inventory
 
 
 class InventoryService:
