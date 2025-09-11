@@ -28,10 +28,10 @@ def create_tables():
         
         # Create all tables
         Base.metadata.create_all(bind=engine)
-        logger.info("✅ Database tables created successfully!")
+        logger.info(" Database tables created successfully!")
         
     except Exception as e:
-        logger.error(f"❌ Error creating database tables: {e}")
+        logger.error(f" Error creating database tables: {e}")
         sys.exit(1)
 
 
