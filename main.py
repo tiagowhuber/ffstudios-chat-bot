@@ -29,9 +29,9 @@ def main() -> None:
     try:
         init_database()
         if test_connection():
-            logger.info("Database connected successfully!")
+            logger.info("Database connected successfully")
         else:
-            logger.error("Database connection failed!")
+            logger.error("Database connection failed")
             raise RuntimeError("Failed to connect to database")
     except Exception as e:
         logger.error(f"Database initialization error: {e}")
