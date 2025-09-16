@@ -48,6 +48,9 @@ class Config:
         self.TELEGRAM_BOT_TOKEN: Final = os.environ.get("TELEGRAM_BOT_TOKEN")
         self.TELEGRAM_BOT_USERNAME: Final = os.environ.get("TELEGRAM_BOT_USERNAME")
         
+        # OpenAI configuration
+        self.OPENAI_API_KEY: Final = os.environ.get("OPENAI_API_KEY")
+        
         # Database configuration
         self.PGHOST: Final = os.environ.get("PGHOST", "localhost")
         self.PGPORT: Final = os.environ.get("PGPORT", "5432")
@@ -59,6 +62,9 @@ class Config:
         """Validate that required configuration is present."""
         if not self.TELEGRAM_BOT_TOKEN:
             raise ValueError("No TELEGRAM_BOT_TOKEN provided. Please set it in your .env file.")
+        
+        if not self.OPENAI_API_KEY:
+            raise ValueError("No OPENAI_API_KEY provided. Please set it in your .env file.")
         
         if not all([self.PGUSER, self.PGPASSWORD, self.PGDATABASE]):
             raise ValueError(

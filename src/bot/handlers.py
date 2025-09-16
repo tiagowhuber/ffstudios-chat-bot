@@ -8,9 +8,15 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from ..services.inventory_service import add_ingredient, find_ingredient
+from ..services.smart_inventory_service import SmartInventoryService
+from .config import Config
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+# Initialize smart inventory service
+config = Config()
+smart_inventory = SmartInventoryService(config.OPENAI_API_KEY) if config.OPENAI_API_KEY else None
 
 
 async def contact_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -25,7 +31,15 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "Available commands:\n"
         "/contact - Contact an agent\n"
         "/help - Show this help message\n"
-        "/db - Make a database query (for now its a simple example)\n"
+        "/db - Make a database query (for now its a simple example)\n\n"
+        "🤖 **Natural Language Inventory Management:**\n"
+        "You can now talk to me naturally! Try these examples:\n"
+        "• '2 kg of chocolate arrived'\n"
+        "• 'used 500g of flour'\n"
+        "• 'how much sugar do we have?'\n"
+        "• 'add new ingredient: vanilla extract 100ml'\n"
+        "• 'set milk to 2 liters'\n"
+        "• 'show me all inventory'"
     )
     await update.message.reply_text(help_text)
 
@@ -61,18 +75,18 @@ async def db_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None
         await update.message.reply_text(f"Database error: {str(e)}")
 
 
-def handle_response(message: str) -> str:
+def handle_response(message: str) -> Optional[str]:
     """Generate a response based on the input message."""
     message = message.lower()
     
     if "hello" in message:
-        return "Hi, I'm a FFStudios DB management bot"
+        return "Hi, I'm a FFStudios DB management bot! 🤖\n\nYou can tell me things like:\n• '2 kg of chocolate arrived'\n• 'used 500g of flour'\n• 'how much sugar do we have?'"
     elif "how are you" in message:
-        return "I'm just a bot, but I'm functioning as expected!"
+        return "I'm just a bot, but I'm functioning as expected! Ready to help you manage your inventory. 📦"
     elif "bye" in message:
-        return "Goodbye!"
+        return "Goodbye! 👋"
     else:
-        return "I donno wa to du"
+        return None  # Let smart inventory handle it
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -87,20 +101,32 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
         logger.info(f"User ({user_id}) in {message_type}: {text}")
 
-        response: str = ""
-        
+        # Handle group messages
         if message_type == "group":
             if bot_username and f"@{bot_username.lower()}" in text.lower():
-                new_text = text.replace(f"@{bot_username}", "").strip()
-                response = handle_response(new_text)
+                text = text.replace(f"@{bot_username}", "").strip()
             else:
                 return
-        else:
-            response = handle_response(text)
+        
+        # Try basic responses first
+        response = handle_response(text)
+        
+        # If no basic response and smart inventory is available, try NLP processing
+        if response is None and smart_inventory:
+            try:
+                success, nlp_response = smart_inventory.process_natural_language_command(text)
+                response = nlp_response
+            except Exception as e:
+                logger.error(f"Error in smart inventory processing: {e}")
+                response = "Sorry, I encountered an error processing your inventory request."
+        
+        # Fallback response
+        if response is None:
+            response = "I'm not sure how to help with that. Try asking about inventory or type /help for available commands!"
         
         if response:
             logger.info(f"Bot response to user {user_id}: {response}")
-            await update.message.reply_text(response)
+            await update.message.reply_text(response, parse_mode='Markdown')
             
     except Exception as e:
         logger.error(f"Error handling message: {e}")
