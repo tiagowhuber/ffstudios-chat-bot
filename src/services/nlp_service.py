@@ -39,32 +39,39 @@ class NLPService:
         """
         try:
             system_prompt = """
-You are an AI assistant that parses inventory management messages. 
-Analyze the user's message and extract inventory actions.
+Eres un asistente de IA que analiza mensajes de gestión de inventario en español. 
+Analiza el mensaje del usuario y extrae las acciones de inventario.
 
-Return a JSON object with these fields:
-- action: one of "add_new", "add_quantity", "remove_quantity", "update_quantity", "check_stock", "unknown"
-- ingredient_name: the name of the ingredient (string)
-- quantity: the numeric quantity (number, null if not specified)
-- unit: the unit of measurement (string, null if not specified)
-- confidence: confidence score from 0.0 to 1.0
+Devuelve un objeto JSON con estos campos:
+- action: uno de "add_new", "add_quantity", "remove_quantity", "update_quantity", "check_stock", "unknown"
+- ingredient_name: el nombre del ingrediente (string)
+- quantity: la cantidad numérica (number, null si no se especifica)
+- unit: la unidad de medida (string, null si no se especifica)
+- confidence: puntuación de confianza de 0.0 a 1.0
 
-Action definitions:
-- "add_new": User wants to add a completely new ingredient
-- "add_quantity": User wants to add to existing stock (arrivals, restocking)
-- "remove_quantity": User wants to remove from stock (usage, consumption)
-- "update_quantity": User wants to set a specific total quantity
-- "check_stock": User wants to check current stock levels
-- "unknown": Cannot determine the action clearly
+Definiciones de acciones:
+- "add_new": El usuario quiere agregar un ingrediente completamente nuevo
+- "add_quantity": El usuario quiere agregar a stock existente (llegadas, reabastecimiento)
+- "remove_quantity": El usuario quiere quitar del stock (uso, consumo)
+- "update_quantity": El usuario quiere establecer una cantidad total específica
+- "check_stock": El usuario quiere revisar los niveles de stock actuales
+- "unknown": No se puede determinar la acción claramente
 
-Examples:
-"2 kg of chocolate arrived" → {"action": "add_quantity", "ingredient_name": "chocolate", "quantity": 2.0, "unit": "kg", "confidence": 0.95}
-"used 500g of flour" → {"action": "remove_quantity", "ingredient_name": "flour", "quantity": 0.5, "unit": "kg", "confidence": 0.9}
-"add new ingredient: vanilla extract 100ml" → {"action": "add_new", "ingredient_name": "vanilla extract", "quantity": 100.0, "unit": "ml", "confidence": 0.9}
-"how much sugar do we have?" → {"action": "check_stock", "ingredient_name": "sugar", "quantity": null, "unit": null, "confidence": 0.85}
-"set milk to 2 liters" → {"action": "update_quantity", "ingredient_name": "milk", "quantity": 2.0, "unit": "liters", "confidence": 0.9}
+Ejemplos en español:
+"llegaron 2 kg de chocolate" → {"action": "add_quantity", "ingredient_name": "chocolate", "quantity": 2.0, "unit": "kg", "confidence": 0.95}
+"usé 500g de harina" → {"action": "remove_quantity", "ingredient_name": "harina", "quantity": 0.5, "unit": "kg", "confidence": 0.9}
+"agregar nuevo ingrediente: extracto de vainilla 100ml" → {"action": "add_new", "ingredient_name": "extracto de vainilla", "quantity": 100.0, "unit": "ml", "confidence": 0.9}
+"¿cuánto azúcar tenemos?" → {"action": "check_stock", "ingredient_name": "azúcar", "quantity": null, "unit": null, "confidence": 0.85}
+"establecer leche a 2 litros" → {"action": "update_quantity", "ingredient_name": "leche", "quantity": 2.0, "unit": "litros", "confidence": 0.9}
 
-Be flexible with units (convert g to kg when appropriate, ml to liters, etc.).
+Acepta variaciones como:
+- "recibimos", "llegó", "entró", "compramos" para add_quantity
+- "usé", "gasté", "consumí", "utilicé" para remove_quantity
+- "¿cuánto hay de...?", "stock de...", "cantidad de..." para check_stock
+- "poner", "establecer", "cambiar a" para update_quantity
+
+Sé flexible con unidades (convierte g a kg cuando sea apropiado, ml a litros, etc.).
+También acepta sinónimos comunes de ingredientes.
 """
 
             response = self.client.chat.completions.create(
@@ -122,19 +129,19 @@ Be flexible with units (convert g to kg when appropriate, ml to liters, etc.).
         unit = unit.lower().strip()
         
         # Weight conversions to kg
-        if unit in ['g', 'gram', 'grams']:
+        if unit in ['g', 'gram', 'grams', 'gramo', 'gramos']:
             return quantity / 1000, "kg"
-        elif unit in ['kg', 'kilogram', 'kilograms', 'kilo', 'kilos']:
+        elif unit in ['kg', 'kilogram', 'kilograms', 'kilo', 'kilos', 'kilogramo', 'kilogramos']:
             return quantity, "kg"
         
         # Volume conversions to liters
-        elif unit in ['ml', 'milliliter', 'milliliters']:
+        elif unit in ['ml', 'milliliter', 'milliliters', 'mililitro', 'mililitros']:
             return quantity / 1000, "liters"
-        elif unit in ['l', 'liter', 'liters', 'litre', 'litres']:
+        elif unit in ['l', 'liter', 'liters', 'litre', 'litres', 'litro', 'litros']:
             return quantity, "liters"
         
         # Count units
-        elif unit in ['pcs', 'pieces', 'piece', 'pc', 'units', 'unit']:
+        elif unit in ['pcs', 'pieces', 'piece', 'pc', 'units', 'unit', 'pieza', 'piezas', 'unidad', 'unidades']:
             return quantity, "pcs"
         
         # Default: return as-is

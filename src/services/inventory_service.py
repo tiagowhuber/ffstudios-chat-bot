@@ -36,13 +36,13 @@ class InventoryService:
             SQLAlchemyError: If database operation fails
         """
         if not ingredient_name or not ingredient_name.strip():
-            raise ValueError("Ingredient name cannot be empty")
+            raise ValueError("El nombre del ingrediente no puede estar vacío")
         
         if quantity < 0:
-            raise ValueError("Quantity cannot be negative")
+            raise ValueError("La cantidad no puede ser negativa")
         
         if not unit or not unit.strip():
-            raise ValueError("Unit cannot be empty")
+            raise ValueError("La unidad no puede estar vacía")
         
         try:
             with get_db_session() as session:
@@ -52,7 +52,7 @@ class InventoryService:
                 ).first()
                 
                 if existing:
-                    raise ValueError(f"Ingredient '{ingredient_name}' already exists with ID {existing.id}")
+                    raise ValueError(f"El ingrediente '{ingredient_name}' ya existe con ID {existing.id}")
                 
                 # Create new inventory item
                 new_item = Inventory(
@@ -68,7 +68,7 @@ class InventoryService:
                 return new_item
                 
         except SQLAlchemyError as e:
-            raise SQLAlchemyError(f"Database error while adding ingredient: {str(e)}")
+            raise SQLAlchemyError(f"Error de base de datos al agregar ingrediente: {str(e)}")
     
     @staticmethod
     def update_quantity(
@@ -90,7 +90,7 @@ class InventoryService:
             SQLAlchemyError: If database operation fails
         """
         if new_quantity < 0:
-            raise ValueError("Quantity cannot be negative")
+            raise ValueError("La cantidad no puede ser negativa")
         
         try:
             with get_db_session() as session:
@@ -106,7 +106,7 @@ class InventoryService:
                 return item
                 
         except SQLAlchemyError as e:
-            raise SQLAlchemyError(f"Database error while updating quantity: {str(e)}")
+            raise SQLAlchemyError(f"Error de base de datos al actualizar cantidad: {str(e)}")
     
     @staticmethod
     def add_quantity(
@@ -128,7 +128,7 @@ class InventoryService:
             SQLAlchemyError: If database operation fails
         """
         if quantity_to_add <= 0:
-            raise ValueError("Quantity to add must be positive")
+            raise ValueError("La cantidad a agregar debe ser positiva")
         
         try:
             with get_db_session() as session:
@@ -144,7 +144,7 @@ class InventoryService:
                 return item
                 
         except SQLAlchemyError as e:
-            raise SQLAlchemyError(f"Database error while adding quantity: {str(e)}")
+            raise SQLAlchemyError(f"Error de base de datos al agregar cantidad: {str(e)}")
     
     @staticmethod
     def remove_quantity(
@@ -166,7 +166,7 @@ class InventoryService:
             SQLAlchemyError: If database operation fails
         """
         if quantity_to_remove <= 0:
-            raise ValueError("Quantity to remove must be positive")
+            raise ValueError("La cantidad a quitar debe ser positiva")
         
         try:
             with get_db_session() as session:
@@ -177,7 +177,7 @@ class InventoryService:
                 
                 new_quantity = item.quantity - Decimal(str(quantity_to_remove))
                 if new_quantity < 0:
-                    raise ValueError(f"Cannot remove {quantity_to_remove} {item.unit}. Only {item.quantity} {item.unit} available.")
+                    raise ValueError(f"No se pueden quitar {quantity_to_remove} {item.unit}. Solo hay {item.quantity} {item.unit} disponibles.")
                 
                 item.quantity = new_quantity
                 session.commit()
@@ -186,7 +186,7 @@ class InventoryService:
                 return item
                 
         except SQLAlchemyError as e:
-            raise SQLAlchemyError(f"Database error while removing quantity: {str(e)}")
+            raise SQLAlchemyError(f"Error de base de datos al quitar cantidad: {str(e)}")
     
     @staticmethod
     def delete_ingredient(ingredient_id: int) -> bool:
@@ -215,7 +215,7 @@ class InventoryService:
                 return True
                 
         except SQLAlchemyError as e:
-            raise SQLAlchemyError(f"Database error while deleting ingredient: {str(e)}")
+            raise SQLAlchemyError(f"Error de base de datos al eliminar ingrediente: {str(e)}")
     
     @staticmethod
     def get_ingredient_by_id(ingredient_id: int) -> Optional[Inventory]:
@@ -233,7 +233,7 @@ class InventoryService:
                 return session.query(Inventory).filter(Inventory.id == ingredient_id).first()
                 
         except SQLAlchemyError as e:
-            raise SQLAlchemyError(f"Database error while fetching ingredient: {str(e)}")
+            raise SQLAlchemyError(f"Error de base de datos al obtener ingrediente: {str(e)}")
     
     @staticmethod
     def get_ingredient_by_name(ingredient_name: str) -> Optional[Inventory]:
@@ -253,7 +253,7 @@ class InventoryService:
                 ).first()
                 
         except SQLAlchemyError as e:
-            raise SQLAlchemyError(f"Database error while fetching ingredient: {str(e)}")
+            raise SQLAlchemyError(f"Error de base de datos al obtener ingrediente: {str(e)}")
     
     @staticmethod
     def list_all_ingredients() -> List[Inventory]:
@@ -268,7 +268,7 @@ class InventoryService:
                 return session.query(Inventory).order_by(Inventory.ingredient_name).all()
                 
         except SQLAlchemyError as e:
-            raise SQLAlchemyError(f"Database error while fetching all ingredients: {str(e)}")
+            raise SQLAlchemyError(f"Error de base de datos al obtener todos los ingredientes: {str(e)}")
     
     @staticmethod
     def search_ingredients(search_term: str) -> List[Inventory]:
@@ -288,7 +288,7 @@ class InventoryService:
                 ).order_by(Inventory.ingredient_name).all()
                 
         except SQLAlchemyError as e:
-            raise SQLAlchemyError(f"Database error while searching ingredients: {str(e)}")
+            raise SQLAlchemyError(f"Error de base de datos al buscar ingredientes: {str(e)}")
 
 
 # Convenience functions for easier use
