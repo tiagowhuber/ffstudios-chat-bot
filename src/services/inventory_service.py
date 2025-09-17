@@ -2,13 +2,14 @@
 Service functions for managing inventory operations.
 """
 from decimal import Decimal
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
 from ..database.db import get_db_session
 from ..database.models import Inventory
+from .fuzzy_matcher import FuzzyMatcher
 
 
 class InventoryService:
@@ -256,6 +257,59 @@ class InventoryService:
             raise SQLAlchemyError(f"Error de base de datos al obtener ingrediente: {str(e)}")
     
     @staticmethod
+    def get_ingredient_by_name_fuzzy(
+        ingredient_name: str, 
+        min_similarity: float = 0.7
+    ) -> Optional[Tuple[Inventory, float]]:
+        """
+        Get an ingredient by its name using fuzzy matching for typos.
+        
+        Args:
+            ingredient_name: Name of the ingredient (may contain typos)
+            min_similarity: Minimum similarity threshold for fuzzy matching
+            
+        Returns:
+            Tuple of (Inventory instance, similarity_score) or None if not found
+        """
+        try:
+            # First try exact match
+            exact_match = InventoryService.get_ingredient_by_name(ingredient_name)
+            if exact_match:
+                return (exact_match, 1.0)
+            
+            # If no exact match, try fuzzy matching
+            with get_db_session() as session:
+                all_ingredients = session.query(Inventory).all()
+                
+                if not all_ingredients:
+                    return None
+                
+                # Get all ingredient names for fuzzy matching
+                ingredient_names = [item.ingredient_name for item in all_ingredients]
+                
+                # Find best fuzzy match
+                best_match = FuzzyMatcher.find_best_match(
+                    ingredient_name, 
+                    ingredient_names, 
+                    min_similarity
+                )
+                
+                if best_match:
+                    matched_name, similarity = best_match
+                    # Find the inventory item with the matched name
+                    matched_item = session.query(Inventory).filter(
+                        Inventory.ingredient_name.ilike(matched_name)
+                    ).first()
+                    
+                    if matched_item:
+                        return (matched_item, similarity)
+                
+                return None
+                
+        except SQLAlchemyError as e:
+            raise SQLAlchemyError(f"Error de base de datos al obtener ingrediente con fuzzy matching: {str(e)}")
+    
+    @staticmethod
     def list_all_ingredients() -> List[Inventory]:
         """
         Get all ingredients in the inventory.
@@ -315,3 +369,8 @@ def get_all_ingredients() -> List[Inventory]:
 def find_ingredient(ingredient_name: str) -> Optional[Inventory]:
     """Find an ingredient by name."""
     return InventoryService.get_ingredient_by_name(ingredient_name)
+
+
+def find_ingredient_fuzzy(ingredient_name: str, min_similarity: float = 0.7) -> Optional[Tuple[Inventory, float]]:
+    """Find an ingredient by name using fuzzy matching for typos."""
+    return InventoryService.get_ingredient_by_name_fuzzy(ingredient_name, min_similarity)
