@@ -3,7 +3,7 @@ Service for financial transactions and reporting.
 """
 import logging
 from typing import Optional, Dict, Any, List
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
 from ..database.db import get_db_session
@@ -143,4 +143,140 @@ class FinanceService:
                 return report
         except Exception as e:
             logger.error(f"Error generating provider report: {e}")
+            return "Error al generar reporte."
+
+    def get_expenses_by_category(self, limit: int = 5) -> str:
+        """Report: Total expenses by category."""
+        try:
+            with get_db_session() as session:
+                results = session.query(
+                    Categoria.nombre,
+                    func.sum(Gasto.monto).label('total')
+                ).join(Gasto).group_by(Categoria.nombre).order_by(text('total DESC')).limit(limit).all()
+                
+                if not results:
+                    return "No hay gastos registrados."
+
+                report = "📊 **Gastos por Categoría:**\n"
+                for row in results:
+                    report += f"• {row.nombre}: ${row.total:,.0f}\n"
+                return report
+        except Exception as e:
+            logger.error(f"Error generating category report: {e}")
+            return "Error al generar reporte."
+
+    def get_expenses_by_payment_method(self, limit: int = 5) -> str:
+        """Report: Total expenses by payment method."""
+        try:
+            with get_db_session() as session:
+                results = session.query(
+                    MetodoPago.nombre,
+                    func.sum(Gasto.monto).label('total')
+                ).join(Gasto).group_by(MetodoPago.nombre).order_by(text('total DESC')).limit(limit).all()
+                
+                if not results:
+                    return "No hay gastos registrados."
+
+                report = "💳 **Gastos por Método de Pago:**\n"
+                for row in results:
+                    report += f"• {row.nombre}: ${row.total:,.0f}\n"
+                return report
+        except Exception as e:
+            logger.error(f"Error generating payment method report: {e}")
+            return "Error al generar reporte."
+
+    def get_expenses_by_type(self, limit: int = 5) -> str:
+        """Report: Total expenses by type (Fijo/Variable)."""
+        try:
+            with get_db_session() as session:
+                results = session.query(
+                    TipoGasto.nombre,
+                    func.sum(Gasto.monto).label('total')
+                ).join(Gasto).group_by(TipoGasto.nombre).order_by(text('total DESC')).limit(limit).all()
+                
+                if not results:
+                    return "No hay gastos registrados."
+
+                report = "📋 **Gastos por Tipo:**\n"
+                for row in results:
+                    report += f"• {row.nombre}: ${row.total:,.0f}\n"
+                return report
+        except Exception as e:
+            logger.error(f"Error generating expense type report: {e}")
+            return "Error al generar reporte."
+
+    def get_expenses_by_product(self, limit: int = 10) -> str:
+        """Report: Total expenses by product."""
+        try:
+            with get_db_session() as session:
+                results = session.query(
+                    CatalogoProducto.nombre,
+                    func.sum(Gasto.monto).label('total'),
+                    func.sum(Gasto.cantidad_comprada).label('cantidad')
+                ).join(Gasto).group_by(CatalogoProducto.nombre).order_by(text('total DESC')).limit(limit).all()
+                
+                if not results:
+                    return "No hay compras de productos registradas."
+
+                report = "🛒 **Gastos por Producto:**\n"
+                for row in results:
+                    report += f"• {row.nombre}: ${row.total:,.0f} ({row.cantidad:,.1f} unidades)\n"
+                return report
+        except Exception as e:
+            logger.error(f"Error generating product report: {e}")
+            return "Error al generar reporte."
+
+    def get_recent_transactions(self, limit: int = 10) -> str:
+        """Report: List recent transactions with details."""
+        try:
+            with get_db_session() as session:
+                results = session.query(
+                    Gasto.fecha_compra,
+                    Gasto.monto,
+                    Categoria.nombre.label('categoria'),
+                    Proveedor.nombre.label('proveedor')
+                ).join(Categoria).join(Proveedor).order_by(Gasto.fecha_compra.desc()).limit(limit).all()
+                
+                if not results:
+                    return "No hay gastos registrados."
+
+                report = "📜 **Transacciones Recientes:**\n"
+                for row in results:
+                    fecha_str = row.fecha_compra.strftime('%d/%m/%Y') if row.fecha_compra else 'N/A'
+                    report += f"• {fecha_str} - ${row.monto:,.0f} - {row.categoria} ({row.proveedor})\n"
+                return report
+        except Exception as e:
+            logger.error(f"Error generating recent transactions report: {e}")
+            return "Error al generar reporte."
+
+    def get_total_expenses_summary(self) -> str:
+        """Report: Overall expenses summary."""
+        try:
+            with get_db_session() as session:
+                total = session.query(func.sum(Gasto.monto)).scalar() or 0
+                count = session.query(func.count(Gasto.id)).scalar() or 0
+                
+                # Get breakdown by type
+                tipo_results = session.query(
+                    TipoGasto.nombre,
+                    func.sum(Gasto.monto).label('total')
+                ).join(Gasto).group_by(TipoGasto.nombre).all()
+                
+                if count == 0:
+                    return "No hay gastos registrados."
+
+                report = "💰 **Resumen de Gastos:**\n"
+                report += f"• Total: ${total:,.0f}\n"
+                report += f"• Cantidad de transacciones: {count}\n"
+                report += f"• Promedio por transacción: ${total/count:,.0f}\n\n"
+                
+                if tipo_results:
+                    report += "**Por Tipo:**\n"
+                    for row in tipo_results:
+                        pct = (row.total / total * 100) if total > 0 else 0
+                        report += f"• {row.nombre}: ${row.total:,.0f} ({pct:.1f}%)\n"
+                
+                return report
+        except Exception as e:
+            logger.error(f"Error generating summary report: {e}")
             return "Error al generar reporte."
