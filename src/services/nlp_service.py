@@ -14,10 +14,20 @@ logger = logging.getLogger(__name__)
 @dataclass
 class InventoryAction:
     """Represents an inventory action parsed from natural language."""
-    action: str  # 'add_new', 'add_quantity', 'remove_quantity', 'update_quantity', 'check_stock', 'unknown'
-    ingredient_name: str
+    action: str  # 'register_purchase', 'register_expense', 'register_usage', 'check_stock', 'finance_report', 'unknown'
+    ingredient_name: Optional[str] = None
     quantity: Optional[float] = None
     unit: Optional[str] = None
+    
+    # Financial fields
+    cost: Optional[float] = None
+    currency: Optional[str] = None
+    provider: Optional[str] = None
+    payment_method: Optional[str] = None
+    expense_category: Optional[str] = None # 'luz', 'agua', 'arriendo', 'comida', etc.
+    
+    reason: Optional[str] = None # For usage/waste
+    
     confidence: float = 0.0
 
 @dataclass
@@ -46,52 +56,47 @@ class NLPService:
         """
         try:
             system_prompt = """
-Eres un asistente de IA que analiza mensajes de gestión de inventario en español. 
-Analiza el mensaje del usuario y extrae las acciones de inventario.
+Eres un experto asistente de IA para la gestión de inventario y finanzas de un negocio (FFStudios).
+Analiza el mensaje del usuario y extrae la intención estructurada.
 
-Devuelve un objeto JSON con estos campos:
-- action: uno de "add_new", "add_quantity", "remove_quantity", "update_quantity", "check_stock", "unknown"
-- ingredient_name: el nombre del ingrediente (string)
-- quantity: la cantidad numérica (number, null si no se especifica)
-- unit: la unidad de medida (string, null si no se especifica)
-- confidence: puntuación de confianza de 0.0 a 1.0
+SALIDA JSON (campos opcionales son null si no aplican):
+{
+  "action": "register_purchase" | "register_expense" | "register_usage" | "check_stock" | "finance_report" | "unknown",
+  "ingredient_name": string | null, // Para compras/uso/stock
+  "quantity": number | null,
+  "unit": string | null,
+  "cost": number | null, // Monto monetario
+  "currency": "CLP" | "USD" | null,
+  "provider": string | null, // Proveedor: Líder, CGE, SuKarne
+  "payment_method": string | null, // Débito, Crédito, Transferencia, Efectivo
+  "expense_category": string | null, // Para gastos fijos (Luz, Agua, Internet)
+  "reason": string | null, // Para uso/baja (e.g. "para un queque")
+  "confidence": number // 0.0 - 1.0
+}
 
-Definiciones de acciones:
-- "add_new": El usuario quiere agregar un ingrediente completamente nuevo
-- "add_quantity": El usuario quiere agregar a stock existente (llegadas, reabastecimiento)
-- "remove_quantity": El usuario quiere quitar del stock (uso, consumo)
-- "update_quantity": El usuario quiere establecer una cantidad total específica
-- "check_stock": El usuario quiere revisar los niveles de stock actuales
-- "unknown": No se puede determinar la acción claramente
+DEFINICIONES DE ACCIÓN:
+1. "register_purchase": Compra de INSUMOS (ingredientes, materiales). Implica aumentar stock + registrar gasto.
+   Ej: "Compré 2kg de azúcar por 8000 en el Líder con débito"
+   -> action="register_purchase", ingredient="azúcar", quantity=2, unit="kg", cost=8000, provider="Líder", payment_method="débito"
 
-Ejemplos en español:
-"llegaron 2 kg de chocolate" → {"action": "add_quantity", "ingredient_name": "chocolate", "quantity": 2.0, "unit": "kg", "confidence": 0.95}
-"usé 500g de harina" → {"action": "remove_quantity", "ingredient_name": "harina", "quantity": 0.5, "unit": "kg", "confidence": 0.9}
-"agregar nuevo ingrediente: extracto de vainilla 100ml" → {"action": "add_new", "ingredient_name": "extracto de vainilla", "quantity": 100.0, "unit": "ml", "confidence": 0.9}
-"¿cuánto azúcar tenemos?" → {"action": "check_stock", "ingredient_name": "azúcar", "quantity": null, "unit": null, "confidence": 0.85}
-"establecer leche a 2 litros" → {"action": "update_quantity", "ingredient_name": "leche", "quantity": 2.0, "unit": "litros", "confidence": 0.9}
+2. "register_expense": Pago de SERVICIOS o GASTOS FIJOS (no inventario).
+   Ej: "Pagué 35000 de luz a CGE con transferencia"
+   -> action="register_expense", expense_category="luz", cost=35000, provider="CGE", payment_method="transferencia"
 
-Para consultas de inventario completo, usa ingredient_name: "todo":
-"¿Qué tenemos en stock?" → {"action": "check_stock", "ingredient_name": "todo", "quantity": null, "unit": null, "confidence": 0.9}
-"¿Qué hay disponible?" → {"action": "check_stock", "ingredient_name": "todo", "quantity": null, "unit": null, "confidence": 0.9}
-"¿Qué productos hay?" → {"action": "check_stock", "ingredient_name": "todo", "quantity": null, "unit": null, "confidence": 0.9}
-"¿Cómo va el conteo?" → {"action": "check_stock", "ingredient_name": "todo", "quantity": null, "unit": null, "confidence": 0.9}
-"¿Cuál es el stock disponible?" → {"action": "check_stock", "ingredient_name": "todo", "quantity": null, "unit": null, "confidence": 0.9}
-"¿Cuál es el acervo de productos?" → {"action": "check_stock", "ingredient_name": "todo", "quantity": null, "unit": null, "confidence": 0.9}
-"¿Cuál es el catálogo de artículos?" → {"action": "check_stock", "ingredient_name": "todo", "quantity": null, "unit": null, "confidence": 0.9}
-"¿Cuál es la existencia de mercancía?" → {"action": "check_stock", "ingredient_name": "todo", "quantity": null, "unit": null, "confidence": 0.9}
+3. "register_usage": Salida de inventario (uso, consumo, baja).
+   Ej: "Usé 1kg de harina para un queque"
+   -> action="register_usage", ingredient="harina", quantity=1, unit="kg", reason="para un queque"
 
-Acepta variaciones como:
-- "recibimos", "llegó", "entró", "compramos" para add_quantity
-- "usé", "gasté", "consumí", "utilicé" para remove_quantity
-- "¿cuánto hay de...?", "stock de...", "cantidad de...", "¿qué tenemos?", "¿qué hay?", "inventario", "catálogo", "existencias", "acervo", "disponible", "conteo" para check_stock
-- "poner", "establecer", "cambiar a" para update_quantity
+4. "check_stock": Consultar cantidad actual de inventario.
+   Ej: "¿Cuánto chocolate nos queda?"
 
-IMPORTANTE: Para preguntas generales sobre el inventario completo (sin mencionar un ingrediente específico), 
-siempre usa ingredient_name: "todo" y action: "check_stock".
+5. "finance_report": Consultas sobre gastos financieros.
+   Ej: "¿Cuánto le compramos a santa isabel este mes?", "¿Cuánto gastamos en luz?", "¿Detalle de gastos por proveedor?"
 
-Sé flexible con unidades (convierte g a kg cuando sea apropiado, ml a litros, etc.).
-También acepta sinónimos comunes de ingredientes.
+NOTAS:
+- Normaliza monedas: Si dice "8.000", es 8000.
+- Si no menciona moneda, asume CLP si el contexto parece pesos chilenos.
+- Para "check_stock" sin ingrediente ("¿Qué tenemos?"), usa ingredient_name="todo".
 """
 
             response = self.client.chat.completions.create(
@@ -101,7 +106,7 @@ También acepta sinónimos comunes de ingredientes.
                     {"role": "user", "content": message}
                 ],
                 temperature=0.1,
-                max_tokens=200
+                max_tokens=300
             )
             
             # Parse the JSON response
@@ -117,9 +122,15 @@ También acepta sinónimos comunes de ingredientes.
             
             return InventoryAction(
                 action=parsed_data.get("action", "unknown"),
-                ingredient_name=parsed_data.get("ingredient_name", ""),
+                ingredient_name=parsed_data.get("ingredient_name"),
                 quantity=parsed_data.get("quantity"),
                 unit=parsed_data.get("unit"),
+                cost=parsed_data.get("cost"),
+                currency=parsed_data.get("currency"),
+                provider=parsed_data.get("provider"),
+                payment_method=parsed_data.get("payment_method"),
+                expense_category=parsed_data.get("expense_category"),
+                reason=parsed_data.get("reason"),
                 confidence=parsed_data.get("confidence", 0.0)
             )
             

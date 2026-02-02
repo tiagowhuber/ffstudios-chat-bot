@@ -3,14 +3,16 @@ Database connection and session management using SQLAlchemy.
 """
 import os
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Generator, Optional
 
 from sqlalchemy import create_engine, Engine, text
 from sqlalchemy.orm import sessionmaker, Session
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from the project root .env file
+_env_path = Path(__file__).parent.parent.parent / ".env"
+load_dotenv(_env_path)
 
 # Database configuration
 DATABASE_URL = None

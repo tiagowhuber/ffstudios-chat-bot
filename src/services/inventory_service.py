@@ -1,376 +1,215 @@
 """
-Service functions for managing inventory operations.
+Service functions for managing inventory operations using the new schema.
 """
 from decimal import Decimal
 from typing import List, Optional, Tuple
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
 from ..database.db import get_db_session
-from ..database.models import Inventory
+from ..database.models import Inventario, CatalogoProducto, SalidaInventario, Categoria, Gasto, TipoGasto
 from .fuzzy_matcher import FuzzyMatcher
-
 
 class InventoryService:
     """Service class for inventory operations."""
     
     @staticmethod
+    def _ensure_product(session: Session, name: str, unit: str) -> CatalogoProducto:
+        """Helper to find or create a product definition."""
+        name = name.strip()
+        product = session.query(CatalogoProducto).filter(
+            func.lower(CatalogoProducto.nombre) == name.lower()
+        ).first()
+        
+        if not product:
+            # Default category
+            cat = session.query(Categoria).filter(Categoria.nombre == "Insumos").first()
+            if not cat:
+                cat = Categoria(nombre="Insumos")
+                session.add(cat)
+                session.flush()
+                
+            product = CatalogoProducto(
+                nombre=name,
+                unidad_medida=unit,
+                categoria_id=cat.id
+            )
+            session.add(product)
+            session.flush() # get ID
+            
+        return product
+
+    @staticmethod
     def add_ingredient(
         ingredient_name: str, 
         quantity: float, 
         unit: str
-    ) -> Optional[Inventory]:
+    ) -> Optional[Inventario]:
         """
-        Add a new ingredient to the inventory.
-        
-        Args:
-            ingredient_name: Name of the ingredient
-            quantity: Quantity of the ingredient
-            unit: Unit of measurement (e.g., 'kg', 'liters', 'pcs')
-            
-        Returns:
-            The created Inventory instance, or None if creation failed
-            
-        Raises:
-            ValueError: If input parameters are invalid
-            SQLAlchemyError: If database operation fails
+        Add a new ingredient implicitly by making an initial stock adjustment (zero cost purchase).
         """
-        if not ingredient_name or not ingredient_name.strip():
-            raise ValueError("El nombre del ingrediente no puede estar vacío")
-        
-        if quantity < 0:
-            raise ValueError("La cantidad no puede ser negativa")
-        
-        if not unit or not unit.strip():
-            raise ValueError("La unidad no puede estar vacía")
-        
         try:
             with get_db_session() as session:
-                # Check if ingredient already exists
-                existing = session.query(Inventory).filter(
-                    Inventory.ingredient_name.ilike(ingredient_name.strip())
-                ).first()
+                product = InventoryService._ensure_product(session, ingredient_name, unit)
                 
-                if existing:
-                    raise ValueError(f"El ingrediente '{ingredient_name}' ya existe con ID {existing.id}")
+                # Check for "Ajuste" Type
+                tipo = session.query(TipoGasto).filter(TipoGasto.nombre == "Ajuste").first()
+                if not tipo:
+                    tipo = TipoGasto(nombre="Ajuste")
+                    session.add(tipo)
+                    session.flush()
                 
-                # Create new inventory item
-                new_item = Inventory(
-                    ingredient_name=ingredient_name.strip(),
-                    quantity=Decimal(str(quantity)),
-                    unit=unit.strip()
+                adjustment = Gasto(
+                    monto=0,
+                    fecha_compra=func.now(),
+                    producto_id=product.id,
+                    cantidad_comprada=quantity,
+                    tipo_gasto_id=tipo.id,
+                    observaciones=f"Inventario inicial / Ajuste manual de {ingredient_name}"
                 )
-                
-                session.add(new_item)
-                session.commit()
-                session.refresh(new_item)  # Get the auto-generated ID
-                
-                return new_item
-                
-        except SQLAlchemyError as e:
-            raise SQLAlchemyError(f"Error de base de datos al agregar ingrediente: {str(e)}")
-    
-    @staticmethod
-    def update_quantity(
-        ingredient_id: int, 
-        new_quantity: float
-    ) -> Optional[Inventory]:
-        """
-        Update the quantity of an existing ingredient.
-        
-        Args:
-            ingredient_id: ID of the ingredient to update
-            new_quantity: New quantity value
-            
-        Returns:
-            The updated Inventory instance, or None if not found
-            
-        Raises:
-            ValueError: If input parameters are invalid
-            SQLAlchemyError: If database operation fails
-        """
-        if new_quantity < 0:
-            raise ValueError("La cantidad no puede ser negativa")
-        
-        try:
-            with get_db_session() as session:
-                item = session.query(Inventory).filter(Inventory.id == ingredient_id).first()
-                
-                if not item:
-                    return None
-                
-                item.quantity = Decimal(str(new_quantity))
-                session.commit()
-                session.refresh(item)
-                
-                return item
-                
-        except SQLAlchemyError as e:
-            raise SQLAlchemyError(f"Error de base de datos al actualizar cantidad: {str(e)}")
-    
-    @staticmethod
-    def add_quantity(
-        ingredient_id: int, 
-        quantity_to_add: float
-    ) -> Optional[Inventory]:
-        """
-        Add quantity to an existing ingredient (useful for restocking).
-        
-        Args:
-            ingredient_id: ID of the ingredient
-            quantity_to_add: Quantity to add to current stock
-            
-        Returns:
-            The updated Inventory instance, or None if not found
-            
-        Raises:
-            ValueError: If input parameters are invalid
-            SQLAlchemyError: If database operation fails
-        """
-        if quantity_to_add <= 0:
-            raise ValueError("La cantidad a agregar debe ser positiva")
-        
-        try:
-            with get_db_session() as session:
-                item = session.query(Inventory).filter(Inventory.id == ingredient_id).first()
-                
-                if not item:
-                    return None
-                
-                item.quantity += Decimal(str(quantity_to_add))
-                session.commit()
-                session.refresh(item)
-                
-                return item
-                
-        except SQLAlchemyError as e:
-            raise SQLAlchemyError(f"Error de base de datos al agregar cantidad: {str(e)}")
-    
-    @staticmethod
-    def remove_quantity(
-        ingredient_id: int, 
-        quantity_to_remove: float
-    ) -> Optional[Inventory]:
-        """
-        Remove quantity from an existing ingredient (useful for usage tracking).
-        
-        Args:
-            ingredient_id: ID of the ingredient
-            quantity_to_remove: Quantity to remove from current stock
-            
-        Returns:
-            The updated Inventory instance, or None if not found
-            
-        Raises:
-            ValueError: If input parameters are invalid or would result in negative stock
-            SQLAlchemyError: If database operation fails
-        """
-        if quantity_to_remove <= 0:
-            raise ValueError("La cantidad a quitar debe ser positiva")
-        
-        try:
-            with get_db_session() as session:
-                item = session.query(Inventory).filter(Inventory.id == ingredient_id).first()
-                
-                if not item:
-                    return None
-                
-                new_quantity = item.quantity - Decimal(str(quantity_to_remove))
-                if new_quantity < 0:
-                    raise ValueError(f"No se pueden quitar {quantity_to_remove} {item.unit}. Solo hay {item.quantity} {item.unit} disponibles.")
-                
-                item.quantity = new_quantity
-                session.commit()
-                session.refresh(item)
-                
-                return item
-                
-        except SQLAlchemyError as e:
-            raise SQLAlchemyError(f"Error de base de datos al quitar cantidad: {str(e)}")
-    
-    @staticmethod
-    def delete_ingredient(ingredient_id: int) -> bool:
-        """
-        Delete an ingredient from the inventory.
-        
-        Args:
-            ingredient_id: ID of the ingredient to delete
-            
-        Returns:
-            True if ingredient was deleted, False if not found
-            
-        Raises:
-            SQLAlchemyError: If database operation fails
-        """
-        try:
-            with get_db_session() as session:
-                item = session.query(Inventory).filter(Inventory.id == ingredient_id).first()
-                
-                if not item:
-                    return False
-                
-                session.delete(item)
+                session.add(adjustment)
                 session.commit()
                 
-                return True
-                
-        except SQLAlchemyError as e:
-            raise SQLAlchemyError(f"Error de base de datos al eliminar ingrediente: {str(e)}")
-    
+                # Fetch the result from Inventario table (updated by trigger)
+                return session.query(Inventario).filter(Inventario.producto_id == product.id).first()
+
+        except Exception as e:
+            raise SQLAlchemyError(f"Error adding ingredient: {e}")
+
     @staticmethod
-    def get_ingredient_by_id(ingredient_id: int) -> Optional[Inventory]:
+    def register_usage(
+        ingredient_name: str, 
+        quantity: float, 
+        reason: str = "Uso diario"
+    ) -> Optional[Inventario]:
         """
-        Get an ingredient by its ID.
-        
-        Args:
-            ingredient_id: ID of the ingredient
-            
-        Returns:
-            The Inventory instance, or None if not found
+        Register usage (decrease stock).
         """
         try:
             with get_db_session() as session:
-                return session.query(Inventory).filter(Inventory.id == ingredient_id).first()
-                
-        except SQLAlchemyError as e:
-            raise SQLAlchemyError(f"Error de base de datos al obtener ingrediente: {str(e)}")
-    
-    @staticmethod
-    def get_ingredient_by_name(ingredient_name: str) -> Optional[Inventory]:
-        """
-        Get an ingredient by its name (case-insensitive).
-        
-        Args:
-            ingredient_name: Name of the ingredient
-            
-        Returns:
-            The Inventory instance, or None if not found
-        """
-        try:
-            with get_db_session() as session:
-                return session.query(Inventory).filter(
-                    Inventory.ingredient_name.ilike(ingredient_name.strip())
+                product = session.query(CatalogoProducto).filter(
+                    func.lower(CatalogoProducto.nombre) == ingredient_name.strip().lower()
                 ).first()
                 
-        except SQLAlchemyError as e:
-            raise SQLAlchemyError(f"Error de base de datos al obtener ingrediente: {str(e)}")
-    
+                if not product:
+                    raise ValueError(f"Producto '{ingredient_name}' no encontrado.")
+                
+                # Check stock (optional, trigger might handle negative but good to check)
+                inv = session.query(Inventario).filter(Inventario.producto_id == product.id).first()
+                current_qty = inv.cantidad_actual if inv else Decimal(0)
+                
+                if current_qty < Decimal(str(quantity)):
+                    raise ValueError(f"Stock insuficiente de {product.nombre}. Actual: {current_qty}")
+
+                # Insert to SalidaInventario -> Trigger updates stock
+                salida = SalidaInventario(
+                    producto_id=product.id,
+                    cantidad_usada=quantity,
+                    motivo=reason,
+                    fecha=func.now()
+                )
+                session.add(salida)
+                session.commit()
+                
+                # Refresh inventory to return new state
+                # Need to get session again or query fresh? 
+                # The session commit should have triggered the specialized update
+                # Re-querying is safest
+                session.expire_all()
+                inv = session.query(Inventario).filter(Inventario.producto_id == product.id).first()
+                return inv
+
+        except Exception as e:
+            raise SQLAlchemyError(f"Error registering usage: {e}")
+
+    @staticmethod
+    def get_ingredient_by_name(ingredient_name: str) -> Optional[Inventario]:
+        try:
+            with get_db_session() as session:
+                return session.query(Inventario).join(CatalogoProducto).filter(
+                    func.lower(CatalogoProducto.nombre) == ingredient_name.strip().lower()
+                ).first()
+        except Exception:
+            return None
+
     @staticmethod
     def get_ingredient_by_name_fuzzy(
         ingredient_name: str, 
         min_similarity: float = 0.7
-    ) -> Optional[Tuple[Inventory, float]]:
-        """
-        Get an ingredient by its name using fuzzy matching for typos.
-        
-        Args:
-            ingredient_name: Name of the ingredient (may contain typos)
-            min_similarity: Minimum similarity threshold for fuzzy matching
-            
-        Returns:
-            Tuple of (Inventory instance, similarity_score) or None if not found
-        """
+    ) -> Optional[Tuple[Inventario, float]]:
         try:
-            # First try exact match
-            exact_match = InventoryService.get_ingredient_by_name(ingredient_name)
-            if exact_match:
-                return (exact_match, 1.0)
-            
-            # If no exact match, try fuzzy matching
             with get_db_session() as session:
-                all_ingredients = session.query(Inventory).all()
+                products = session.query(CatalogoProducto).all()
+                names = [p.nombre for p in products]
                 
-                if not all_ingredients:
-                    return None
-                
-                # Get all ingredient names for fuzzy matching
-                ingredient_names = [item.ingredient_name for item in all_ingredients]
-                
-                # Find best fuzzy match
-                best_match = FuzzyMatcher.find_best_match(
-                    ingredient_name, 
-                    ingredient_names, 
-                    min_similarity
-                )
-                
-                if best_match:
-                    matched_name, similarity = best_match
-                    # Find the inventory item with the matched name
-                    matched_item = session.query(Inventory).filter(
-                        Inventory.ingredient_name.ilike(matched_name)
+                match = FuzzyMatcher.find_best_match(ingredient_name, names, min_similarity)
+                if match:
+                    name, score = match
+                    inv = session.query(Inventario).join(CatalogoProducto).filter(
+                        CatalogoProducto.nombre == name
                     ).first()
-                    
-                    if matched_item:
-                        return (matched_item, similarity)
-                
+                    return (inv, score) if inv else None
                 return None
-                
-        except SQLAlchemyError as e:
-            raise SQLAlchemyError(f"Error de base de datos al obtener ingrediente con fuzzy matching: {str(e)}")
-    
+        except Exception:
+            return None
+
     @staticmethod
-    def list_all_ingredients() -> List[Inventory]:
-        """
-        Get all ingredients in the inventory.
-        
-        Returns:
-            List of all Inventory instances
-        """
-        try:
-            with get_db_session() as session:
-                return session.query(Inventory).order_by(Inventory.ingredient_name).all()
-                
-        except SQLAlchemyError as e:
-            raise SQLAlchemyError(f"Error de base de datos al obtener todos los ingredientes: {str(e)}")
-    
-    @staticmethod
-    def search_ingredients(search_term: str) -> List[Inventory]:
-        """
-        Search for ingredients by name (case-insensitive partial match).
-        
-        Args:
-            search_term: Term to search for in ingredient names
+    def list_all_ingredients() -> List[Inventario]:
+        with get_db_session() as session:
+            return session.query(Inventario).join(CatalogoProducto).order_by(CatalogoProducto.nombre).all()
             
-        Returns:
-            List of matching Inventory instances
-        """
+    # Compatibility aliases
+    @staticmethod
+    def update_quantity(ingredient_id: int, new_quantity: float) -> Optional[Inventario]:
+        """Direct stock override (Ajuste)."""
         try:
             with get_db_session() as session:
-                return session.query(Inventory).filter(
-                    Inventory.ingredient_name.ilike(f"%{search_term.strip()}%")
-                ).order_by(Inventory.ingredient_name).all()
+                inv = session.query(Inventario).filter(Inventario.producto_id == ingredient_id).first()
+                if not inv: 
+                    return None
+                    
+                diff = Decimal(str(new_quantity)) - inv.cantidad_actual
+                name = inv.ingredient_name
+                unit = inv.unit
+            
+            # Outside session scope to avoid conflicts if calling other methods
+            if diff == 0:
+                return InventoryService.get_ingredient_by_name(name)
                 
-        except SQLAlchemyError as e:
-            raise SQLAlchemyError(f"Error de base de datos al buscar ingredientes: {str(e)}")
+            if diff > 0:
+                # Add via Gasto (Ajuste)
+                return InventoryService.add_ingredient(name, float(diff), unit)
+            else:
+                # Remove via Salida
+                return InventoryService.register_usage(name, float(abs(diff)), "Corrección de stock")
+        except Exception as e:
+            return None
 
+    @staticmethod
+    def remove_quantity(ingredient_id: int, qty: float) -> Optional[Inventario]:
+         # Find name first
+         with get_db_session() as session:
+             inv = session.query(Inventario).get(ingredient_id)
+             if not inv: return None
+             name = inv.ingredient_name
+             
+         return InventoryService.register_usage(name, qty)
 
-# Convenience functions for easier use
-def add_ingredient(ingredient_name: str, quantity: float, unit: str) -> Optional[Inventory]:
-    """Add a new ingredient to the inventory."""
-    return InventoryService.add_ingredient(ingredient_name, quantity, unit)
+    @staticmethod
+    def add_quantity(ingredient_id: int, qty: float) -> Optional[Inventario]:
+         with get_db_session() as session:
+             inv = session.query(Inventario).get(ingredient_id)
+             if not inv: return None
+             name = inv.ingredient_name
+             unit = inv.unit
+             
+         return InventoryService.add_ingredient(name, qty, unit)
 
+# Export simple functions
+def find_ingredient(name: str):
+    return InventoryService.get_ingredient_by_name(name)
 
-def remove_ingredient(ingredient_id: int) -> bool:
-    """Remove an ingredient from the inventory."""
-    return InventoryService.delete_ingredient(ingredient_id)
-
-
-def update_ingredient_quantity(ingredient_id: int, new_quantity: float) -> Optional[Inventory]:
-    """Update the quantity of an ingredient."""
-    return InventoryService.update_quantity(ingredient_id, new_quantity)
-
-
-def get_all_ingredients() -> List[Inventory]:
-    """Get all ingredients in the inventory."""
-    return InventoryService.list_all_ingredients()
-
-
-def find_ingredient(ingredient_name: str) -> Optional[Inventory]:
-    """Find an ingredient by name."""
-    return InventoryService.get_ingredient_by_name(ingredient_name)
-
-
-def find_ingredient_fuzzy(ingredient_name: str, min_similarity: float = 0.7) -> Optional[Tuple[Inventory, float]]:
-    """Find an ingredient by name using fuzzy matching for typos."""
-    return InventoryService.get_ingredient_by_name_fuzzy(ingredient_name, min_similarity)
+def add_ingredient(name, qty, unit):
+    return InventoryService.add_ingredient(name, qty, unit)

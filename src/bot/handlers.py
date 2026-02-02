@@ -32,7 +32,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "/contact - Contactar con un agente\n"
         "/help - Mostrar este mensaje de ayuda\n"
         "/db - Hacer una consulta a la base de datos (por ahora es un ejemplo simple)\n\n"
-        "🤖 **Gestión de Inventario en Lenguaje Natural:**\n"
+        " **Gestión de Inventario en Lenguaje Natural:**\n"
         "¡Ahora puedes hablarme de forma natural! Prueba estos ejemplos:\n"
         "• 'llegaron 2 kg de chocolate'\n"
         "• 'usé 500g de harina'\n"
@@ -80,11 +80,11 @@ def handle_response(message: str) -> Optional[str]:
     message = message.lower()
     
     if any(word in message for word in ["hola", "hello", "hi", "buenas", "saludos"]):
-        return "¡Hola! Soy un bot de gestión de inventario de FFStudios 🤖\n\nPuedes decirme cosas como:\n• 'llegaron 2 kg de chocolate'\n• 'usé 500g de harina'\n• '¿cuánto azúcar tenemos?'"
+        return "¡Hola! Soy un bot de gestión de inventario de FFStudios \n\nPuedes decirme cosas como:\n• 'llegaron 2 kg de chocolate'\n• 'usé 500g de harina'\n• '¿cuánto azúcar tenemos?'"
     elif any(word in message for word in ["cómo estás", "how are you", "qué tal"]):
-        return "Solo soy un bot, ¡pero estoy funcionando como se esperaba! Listo para ayudarte a gestionar tu inventario. 📦"
+        return "Solo soy un bot, ¡pero estoy funcionando como se esperaba! Listo para ayudarte a gestionar tu inventario. "
     elif any(word in message for word in ["adiós", "bye", "chao", "hasta luego"]):
-        return "¡Hasta luego! 👋"
+        return "¡Hasta luego! "
     else:
         return None  # Let smart inventory handle it
 

@@ -4,9 +4,9 @@ A sophisticated Telegram bot built with Python for database management and natur
 
 ## Features
 
-- 🤖 Telegram bot integration with command handling
+-  Telegram bot integration with command handling
 - 🗄️ PostgreSQL database connectivity with SQLAlchemy ORM
-- 📦 Modular architecture with organized codebase
+-  Modular architecture with organized codebase
 - 🛡️ Robust error handling and logging
 - 🔧 Easy configuration management
 - 📊 Inventory management system
@@ -15,35 +15,48 @@ A sophisticated Telegram bot built with Python for database management and natur
 
 ```
 ffstudios-chat-bot/
-├── src/
-│   ├── __init__.py
+├── src/                       # Source code
 │   ├── bot/
-│   │   ├── __init__.py
-│   │   ├── config.py          # Configuration management
-│   │   └── handlers.py        # Telegram bot handlers
+│   │   ├── config.py         # Configuration management
+│   │   └── handlers.py       # Telegram bot handlers
 │   ├── database/
-│   │   ├── __init__.py
-│   │   ├── db.py             # Database connection management
-│   │   └── models.py         # SQLAlchemy models
+│   │   ├── db.py            # Database connection management
+│   │   ├── models.py        # SQLAlchemy models
+│   │   └── databaseschema.pgsql
 │   └── services/
-│       ├── __init__.py
-│       └── inventory_service.py # Business logic for inventory
+│       ├── finance_service.py
+│       ├── fuzzy_matcher.py
+│       ├── inventory_service.py
+│       ├── nlp_service.py
+│       └── smart_inventory_service.py
+├── examples/                  # Demo scripts and examples
+│   ├── demo_finance.py       # Financial & inventory demo
+│   └── README.md
+├── tests/                     # Test suite
+│   ├── conftest.py
+│   ├── test_finance_flow.py
+│   └── README.md
 ├── scripts/                   # Utility scripts
-├── docs/                     # Documentation
-├── main.py                   # Application entry point
-├── requirements.txt          # Python dependencies
-├── .env.example             # Environment variables template
-├── .gitignore              # Git ignore rules
-└── README.md               # This file
+│   ├── init_db.py
+│   └── run_bot.py
+├── docs/                      # Documentation
+├── main.py                    # Application entry point
+├── requirements.txt           # Production dependencies
+├── requirements-dev.txt       # Development dependencies
+├── pyproject.toml            # Project configuration
+├── .env.example              # Environment variables template
+├── .gitignore               # Git ignore rules
+└── README.md                # This file
 ```
 
 ## Setup
 
 ### Prerequisites
 
-- Python 3.8+ (recommended 3.10+)
-- PostgreSQL database server
+- Python 3.9+ (recommended 3.10+)
+- Docker (for PostgreSQL database)
 - A Telegram Bot Token (get one from [@BotFather](https://t.me/botfather))
+- OpenAI API Key (for natural language processing features)
 
 ### Installation
 
@@ -89,38 +102,71 @@ ffstudios-chat-bot/
    
    # PostgreSQL Database Configuration
    PGHOST=localhost
-   PGPORT=5432
-   PGUSER=your_database_username
-   PGPASSWORD=your_database_password
-   PGDATABASE=ffstudios_chatbot_db
+   PGPORT=5431
+   PGUSER=postgres
+   PGPASSWORD=your_secure_password_here
+   PGDATABASE=postgres
+   
+   # OpenAI API Configuration
+   OPENAI_API_KEY=your_openai_api_key_here
    ```
 
 ### Database Setup
-
-1. Create a PostgreSQL database:
-   ```sql
-   CREATE DATABASE ffstudios_chatbot_db;
+Start PostgreSQL using Docker:
+   ```bash
+   docker run --name ffstudios-db \
+     -e POSTGRES_PASSWORD=your_password \
+     -p 5431:5432 \
+     -v ffstudios-data:/var/lib/postgresql/data \
+     -d postgres
    ```
 
-2. Create the inventory table:
-   ```sql
-   CREATE TABLE inventory (
-       id SERIAL PRIMARY KEY,
-       ingredient_name VARCHAR(100) NOT NULL,
-       quantity NUMERIC(10,2) NOT NULL DEFAULT 0,
-       unit VARCHAR(20) NOT NULL,
-       last_updated TIMESTAMP DEFAULT NOW()
-   );
+2. Verify the container is running:
+   ```bash
+   docker ps
    ```
+
+3. The database tables will be created automatically when you first run the bot.
 
 ### Running the Bot
 
+**Using the run script (recommended):**
+```bash
+python scripts/run_bot.py
+```
+
+**Or directly:**
 ```bash
 python main.py
 ```
 
-## Available Commands
+### Testing and Examples
 
+**Run example demos:**
+```bash
+python examples/demo_finance.py
+```
+
+**Run tests:**
+```bash
+# Install dev dependencies first
+pip install -r requirements-dev.txt
+
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=src --cov-report=html
+python main.py
+```
+ and available commands
+- `/contact` - Connect to an agent
+- `/db` - Test database connectivity
+
+The bot also supports natural language commands for:
+- **Inventory Management**: "Llegaron 2kg de chocolate", "¿Cuánto azúcar tenemos?"
+- **Financial Tracking**: "Pagué 45000 de internet a VTR", "¿Cuánto hemos gastado?"
+- **Usage Recording**: "Usé 500g de harina para el pan"
 - `/help` - Display help information
 - `/contact` - Connect to an agent
 - `/db` - Test database functionality (adds/checks chocolate inventory)
