@@ -44,7 +44,7 @@ CREATE TABLE gastos (
     categoria_id INT REFERENCES categorias(id),
     producto_id INT REFERENCES catalogo_productos(id),
     cantidad_comprada DECIMAL(10, 2),
-    item_descripcion VARCHAR(255),
+    item_descripcion VARCHAR(255), -- Used when producto_id is NULL
     observaciones TEXT
 );
 
@@ -60,7 +60,7 @@ RELATIONSHIPS to use in JOINS:
 - gastos.proveedor_id -> proveedores.id (Get provider name: proveedores.nombre)
 - gastos.categoria_id -> categorias.id (Get category name: categorias.nombre)
 - gastos.metodo_pago_id -> metodos_pago.id (Get method name: metodos_pago.nombre)
-- gastos.producto_id -> catalogo_productos.id (Get product name: catalogo_productos.nombre)
+- gastos.producto_id -> catalogo_productos.id (Get product name: catalogo_productos.nombre). NOTE: This is Optional. Use LEFT JOIN.
 """
 
 class DataAnalystService:
@@ -108,10 +108,10 @@ class DataAnalystService:
         1. Return ONLY the SQL query. No markdown, no explanations.
         2. Use only SELECT statements.
         3. Use standard PostgreSQL syntax (e.g. "EXTRACT(MONTH FROM date)").
-        4. Always JOIN tables to provide readable names (e.g. join 'proveedores' to get 'nombre' instead of just 'proveedor_id').
-        5. If the time is not specified, assume "ALL TIME". If "this month", use CURRENT_DATE.
+        4. ALWAYS use LEFT JOIN when joining 'catalogo_productos' because not all expenses are inventory products.
+        5. If the time is not specified, do NOT restrict by year unless implied (e.g. "this year"). If "December" is asked without year, return ALL Decembers.
         6. LIMIT results to 20 if logic implies a list.
-        7. When filtering by names (proveedor, categoria, producto, etc.), ALWAYS use ILIKE with wildcards for robustness (e.g. WHERE p.nombre ILIKE '%Lider%').
+        7. When filtering by names (proveedor, categoria, producto, etc.), ALWAYS use ILIKE with wildcards (e.g. WHERE p.nombre ILIKE '%Lider%').
         """
         
         response = self.client.chat.completions.create(

@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import List, Optional, Tuple
 
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import SQLAlchemyError
 
 from ..database.db import get_db_session
@@ -73,7 +73,7 @@ class InventoryService:
                 session.commit()
                 
                 # Fetch the result from Inventario table (updated by trigger)
-                return session.query(Inventario).filter(Inventario.producto_id == product.id).first()
+                return session.query(Inventario).options(joinedload(Inventario.producto)).filter(Inventario.producto_id == product.id).first()
 
         except Exception as e:
             raise SQLAlchemyError(f"Error adding ingredient: {e}")
@@ -118,7 +118,7 @@ class InventoryService:
                 # The session commit should have triggered the specialized update
                 # Re-querying is safest
                 session.expire_all()
-                inv = session.query(Inventario).filter(Inventario.producto_id == product.id).first()
+                inv = session.query(Inventario).options(joinedload(Inventario.producto)).filter(Inventario.producto_id == product.id).first()
                 return inv
 
         except Exception as e:
@@ -128,7 +128,7 @@ class InventoryService:
     def get_ingredient_by_name(ingredient_name: str) -> Optional[Inventario]:
         try:
             with get_db_session() as session:
-                return session.query(Inventario).join(CatalogoProducto).filter(
+                return session.query(Inventario).options(joinedload(Inventario.producto)).join(CatalogoProducto).filter(
                     func.lower(CatalogoProducto.nombre) == ingredient_name.strip().lower()
                 ).first()
         except Exception:
@@ -147,7 +147,7 @@ class InventoryService:
                 match = FuzzyMatcher.find_best_match(ingredient_name, names, min_similarity)
                 if match:
                     name, score = match
-                    inv = session.query(Inventario).join(CatalogoProducto).filter(
+                    inv = session.query(Inventario).options(joinedload(Inventario.producto)).join(CatalogoProducto).filter(
                         CatalogoProducto.nombre == name
                     ).first()
                     return (inv, score) if inv else None
@@ -158,7 +158,7 @@ class InventoryService:
     @staticmethod
     def list_all_ingredients() -> List[Inventario]:
         with get_db_session() as session:
-            return session.query(Inventario).join(CatalogoProducto).order_by(CatalogoProducto.nombre).all()
+            return session.query(Inventario).options(joinedload(Inventario.producto)).join(CatalogoProducto).order_by(CatalogoProducto.nombre).all()
             
     # Compatibility aliases
     @staticmethod
