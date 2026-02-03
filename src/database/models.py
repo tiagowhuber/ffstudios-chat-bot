@@ -5,12 +5,42 @@ from datetime import datetime
 import uuid
 from typing import Optional, List
 
-from sqlalchemy import Column, Integer, String, Numeric, DateTime, text, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Numeric, DateTime, text, ForeignKey, Text, BigInteger
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship, declarative_base
 
 # Create the base class for all models
 Base = declarative_base()
+
+
+class UserMessage(Base):
+    __tablename__ = 'user_messages'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    telegram_user_id = Column(BigInteger, nullable=False)
+    username = Column(String(255), nullable=True)
+    message_text = Column(Text, nullable=False)
+    message_type = Column(String(50), nullable=False)
+    received_at = Column(DateTime, default=datetime.utcnow, server_default=text('CURRENT_TIMESTAMP'))
+    
+    bot_replies = relationship("BotReply", back_populates="user_message", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<UserMessage(user={self.telegram_user_id}, text='{self.message_text[:20]}...')>"
+
+
+class BotReply(Base):
+    __tablename__ = 'bot_replies'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_message_id = Column(Integer, ForeignKey('user_messages.id'), nullable=False)
+    reply_text = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, server_default=text('CURRENT_TIMESTAMP'))
+    
+    user_message = relationship("UserMessage", back_populates="bot_replies")
+
+    def __repr__(self):
+        return f"<BotReply(id={self.id}, text='{self.reply_text[:20]}...')>"
 
 
 class TipoGasto(Base):

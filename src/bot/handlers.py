@@ -7,6 +7,8 @@ from typing import Optional
 from telegram import Update
 from telegram.ext import ContextTypes
 
+from ..database.db import get_db_session
+from ..database.models import UserMessage, BotReply
 from ..services.inventory_service import add_ingredient, find_ingredient
 from ..services.smart_inventory_service import SmartInventoryService
 from .config import Config
@@ -101,6 +103,23 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
         logger.info(f"User ({user_id}) in {message_type}: {text}")
 
+        # Save message to database
+        user_message_id = None
+        try:
+            with get_db_session() as session:
+                user_msg = UserMessage(
+                    telegram_user_id=user_id,
+                    username=update.effective_user.username,
+                    message_text=text,
+                    message_type=message_type
+                )
+                session.add(user_msg)
+                session.commit()
+                session.refresh(user_msg)
+                user_message_id = user_msg.id
+        except Exception as db_e:
+            logger.error(f"Failed to log user message to database: {db_e}")
+
         # Handle group messages
         if message_type == "group":
             if bot_username and f"@{bot_username.lower()}" in text.lower():
@@ -127,6 +146,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         if response:
             logger.info(f"Bot response to user {user_id}: {response}")
             await update.message.reply_text(response, parse_mode='Markdown')
+            
+            # Save bot response to database
+            if user_message_id:
+                try:
+                    with get_db_session() as session:
+                        bot_reply = BotReply(
+                            user_message_id=user_message_id,
+                            reply_text=response
+                        )
+                        session.add(bot_reply)
+                        session.commit()
+                except Exception as db_e:
+                    logger.error(f"Failed to log bot reply to database: {db_e}")
             
     except Exception as e:
         logger.error(f"Error handling message: {e}")

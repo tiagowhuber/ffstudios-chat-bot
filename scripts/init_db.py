@@ -8,9 +8,9 @@ import sys
 import logging
 from pathlib import Path
 
-# Add src to Python path
-src_path = Path(__file__).parent.parent / "src"
-sys.path.insert(0, str(src_path))
+# Add project root to Python path
+root_path = Path(__file__).parent.parent
+sys.path.insert(0, str(root_path))
 
 from src.database.db import init_database, get_engine
 from src.database.models import Base

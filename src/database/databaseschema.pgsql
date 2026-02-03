@@ -6,6 +6,26 @@ CREATE SCHEMA IF NOT EXISTS public;
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ==========================================
+-- 0. USER LOGS
+-- ==========================================
+
+CREATE TABLE user_messages (
+    id SERIAL PRIMARY KEY,
+    telegram_user_id BIGINT NOT NULL,
+    username VARCHAR(255),
+    message_text TEXT NOT NULL,
+    message_type VARCHAR(50) NOT NULL,
+    received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE bot_replies (
+    id SERIAL PRIMARY KEY,
+    user_message_id INT NOT NULL REFERENCES user_messages(id),
+    reply_text TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ==========================================
 -- 1. TABLAS MAESTRAS
 -- ==========================================
 
