@@ -57,6 +57,7 @@ class Config:
         self.PGUSER: Final = os.environ.get("PGUSER")
         self.PGPASSWORD: Final = os.environ.get("PGPASSWORD")
         self.PGDATABASE: Final = os.environ.get("PGDATABASE")
+        self.DATABASE_URL: Final = os.environ.get("DATABASE_URL")
     
     def validate(self) -> None:
         """Validate that required configuration is present."""
@@ -66,7 +67,11 @@ class Config:
         if not self.OPENAI_API_KEY:
             raise ValueError("No OPENAI_API_KEY provided. Please set it in your .env file.")
         
-        if not all([self.PGUSER, self.PGPASSWORD, self.PGDATABASE]):
+        # Check either DATABASE_URL or individual credentials
+        has_db_url = bool(self.DATABASE_URL)
+        has_db_creds = all([self.PGUSER, self.PGPASSWORD, self.PGDATABASE])
+        
+        if not (has_db_url or has_db_creds):
             raise ValueError(
-                "Missing database configuration. Please set PGUSER, PGPASSWORD, and PGDATABASE in your .env file"
+                "Missing database configuration. Please set DATABASE_URL or (PGUSER, PGPASSWORD, and PGDATABASE) in your .env file"
             )

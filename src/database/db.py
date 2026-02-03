@@ -30,20 +30,28 @@ def init_database() -> None:
     if engine is not None:
         return  # Already initialized
     
-    # Get database configuration from environment
-    host = os.getenv("PGHOST", "localhost")
-    port = os.getenv("PGPORT", "5432")
-    user = os.getenv("PGUSER")
-    password = os.getenv("PGPASSWORD")
-    database = os.getenv("PGDATABASE")
+    # Check for DATABASE_URL environment variable first (common in cloud deployments)
+    DATABASE_URL = os.getenv("DATABASE_URL")
     
-    if not all([user, password, database]):
-        raise ValueError(
-            "Missing database configuration. Please set PGUSER, PGPASSWORD, and PGDATABASE in your .env file"
-        )
-    
-    # Construct database URL
-    DATABASE_URL = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}"
+    # If DATABASE_URL starts with postgres://, replace it with postgresql:// for SQLAlchemy
+    if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+    if not DATABASE_URL:
+        # Get database configuration from environment
+        host = os.getenv("PGHOST", "localhost")
+        port = os.getenv("PGPORT", "5432")
+        user = os.getenv("PGUSER")
+        password = os.getenv("PGPASSWORD")
+        database = os.getenv("PGDATABASE")
+        
+        if not all([user, password, database]):
+            raise ValueError(
+                "Missing database configuration. Please set DATABASE_URL or (PGUSER, PGPASSWORD, and PGDATABASE) in your .env file"
+            )
+        
+        # Construct database URL
+        DATABASE_URL = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{database}"
     
     # Create engine with connection pooling
     engine = create_engine(
