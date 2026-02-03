@@ -5,11 +5,11 @@ A sophisticated Telegram bot built with Python for database management and natur
 ## Features
 
 -  Telegram bot integration with command handling
-- 🗄️ PostgreSQL database connectivity with SQLAlchemy ORM
+-  PostgreSQL database connectivity with SQLAlchemy ORM
 -  Modular architecture with organized codebase
-- 🛡️ Robust error handling and logging
+-  Robust error handling and logging
 - 🔧 Easy configuration management
-- 📊 Inventory management system
+-  Inventory management system
 
 ## Project Structure
 

@@ -11,6 +11,7 @@ from ..database.models import (
     Gasto, Proveedor, Categoria, MetodoPago, TipoGasto, 
     CatalogoProducto, Inventario
 )
+from .fuzzy_matcher import FuzzyMatcher
 
 logger = logging.getLogger(__name__)
 
@@ -22,10 +23,27 @@ class FinanceService:
         if not name:
             return None
         
-        # Case insensitive search
+        # 1. Exact/Case interaction search (fast path)
         instance = session.query(model).filter(func.lower(model.nombre) == name.lower()).first()
         if instance:
             return instance
+
+        # 2. Normalized search (avoids duplicates like Lider vs Líder)
+        # Fetch all names to compare in python (assuming small tables)
+        all_records = session.query(model).all()
+        
+        norm_name = FuzzyMatcher.normalize_string(name)
+        
+        for record in all_records:
+            if FuzzyMatcher.normalize_string(record.nombre) == norm_name:
+                logger.info(f"Merged '{name}' with existing '{record.nombre}'")
+                return record
+                
+        # 3. Fuzzy search for small typos (high threshold)
+        for record in all_records:
+            if FuzzyMatcher.is_close_match(name, record.nombre, min_similarity=0.9):
+                logger.info(f"Fuzzy matched '{name}' with existing '{record.nombre}'")
+                return record
         
         # Create new
         instance = model(nombre=name)
@@ -33,6 +51,23 @@ class FinanceService:
         # Flush to get the ID but not commit yet
         session.flush() 
         return instance
+
+    def _normalize_payment_method(self, name: str) -> str:
+        """Helper to map common payment aliases to canonical names."""
+        if not name:
+            return "Efectivo"
+            
+        cleaned = name.lower().strip()
+        
+        # Explicit mappings for common abbreviations/aliases
+        if cleaned in ["credito", "crédito", "tc", "tarjeta de credito"]:
+            return "Tarjeta de Crédito"
+        if cleaned in ["debito", "débito", "td", "tarjeta de debito"]:
+            return "Tarjeta de Débito"
+        if "transferencia" in cleaned:
+            return "Transferencia"
+            
+        return name
 
     def register_purchase(self, 
                           product_name: str, 
@@ -49,7 +84,9 @@ class FinanceService:
             with get_db_session() as session:
                 # 1. Resolve dependencies
                 provider = self._get_or_create(session, Proveedor, provider_name or "Desconocido")
-                payment = self._get_or_create(session, MetodoPago, payment_method_name or "Efectivo")
+                
+                payment_name = self._normalize_payment_method(payment_method_name)
+                payment = self._get_or_create(session, MetodoPago, payment_name)
                 
                 # Check product exists or create it
                 product = session.query(CatalogoProducto).filter(
@@ -103,7 +140,10 @@ class FinanceService:
         try:
             with get_db_session() as session:
                 provider = self._get_or_create(session, Proveedor, provider_name or "Desconocido")
-                payment = self._get_or_create(session, MetodoPago, payment_method_name or "Efectivo")
+                
+                payment_name = self._normalize_payment_method(payment_method_name)
+                payment = self._get_or_create(session, MetodoPago, payment_name)
+                
                 category = self._get_or_create(session, Categoria, category_name or "General")
                 
                 gasto = Gasto(
@@ -137,7 +177,7 @@ class FinanceService:
                 if not results:
                     return "No hay gastos registrados."
 
-                report = "📊 **Gastos por Proveedor:**\n"
+                report = " **Gastos por Proveedor:**\n"
                 for row in results:
                     report += f"• {row.nombre}: ${row.total:,.0f}\n"
                 return report
@@ -157,7 +197,7 @@ class FinanceService:
                 if not results:
                     return "No hay gastos registrados."
 
-                report = "📊 **Gastos por Categoría:**\n"
+                report = " **Gastos por Categoría:**\n"
                 for row in results:
                     report += f"• {row.nombre}: ${row.total:,.0f}\n"
                 return report
@@ -177,7 +217,7 @@ class FinanceService:
                 if not results:
                     return "No hay gastos registrados."
 
-                report = "💳 **Gastos por Método de Pago:**\n"
+                report = " **Gastos por Método de Pago:**\n"
                 for row in results:
                     report += f"• {row.nombre}: ${row.total:,.0f}\n"
                 return report
@@ -197,7 +237,7 @@ class FinanceService:
                 if not results:
                     return "No hay gastos registrados."
 
-                report = "📋 **Gastos por Tipo:**\n"
+                report = " **Gastos por Tipo:**\n"
                 for row in results:
                     report += f"• {row.nombre}: ${row.total:,.0f}\n"
                 return report
@@ -218,7 +258,7 @@ class FinanceService:
                 if not results:
                     return "No hay compras de productos registradas."
 
-                report = "🛒 **Gastos por Producto:**\n"
+                report = " **Gastos por Producto:**\n"
                 for row in results:
                     report += f"• {row.nombre}: ${row.total:,.0f} ({row.cantidad:,.1f} unidades)\n"
                 return report
@@ -240,7 +280,7 @@ class FinanceService:
                 if not results:
                     return "No hay gastos registrados."
 
-                report = "📜 **Transacciones Recientes:**\n"
+                report = " **Transacciones Recientes:**\n"
                 for row in results:
                     fecha_str = row.fecha_compra.strftime('%d/%m/%Y') if row.fecha_compra else 'N/A'
                     report += f"• {fecha_str} - ${row.monto:,.0f} - {row.categoria} ({row.proveedor})\n"
@@ -265,7 +305,7 @@ class FinanceService:
                 if count == 0:
                     return "No hay gastos registrados."
 
-                report = "💰 **Resumen de Gastos:**\n"
+                report = " **Resumen de Gastos:**\n"
                 report += f"• Total: ${total:,.0f}\n"
                 report += f"• Cantidad de transacciones: {count}\n"
                 report += f"• Promedio por transacción: ${total/count:,.0f}\n\n"

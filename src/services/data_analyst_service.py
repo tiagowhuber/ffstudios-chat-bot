@@ -111,7 +111,10 @@ class DataAnalystService:
         4. ALWAYS use LEFT JOIN when joining 'catalogo_productos' because not all expenses are inventory products.
         5. If the time is not specified, do NOT restrict by year unless implied (e.g. "this year"). If "December" is asked without year, return ALL Decembers.
         6. LIMIT results to 20 if logic implies a list.
-        7. When filtering by names (proveedor, categoria, producto, etc.), ALWAYS use ILIKE with wildcards (e.g. WHERE p.nombre ILIKE '%Lider%').
+        7. When filtering by names (proveedor, categoria, producto, etc.), ALWAYS use ILIKE with wildcards. 
+           CRITICAL: PostgreSQL IS ACCENT SENSITIVE. The user might type "Lider" but the DB might have "Líder". 
+           Referencing names MUST handle common accent variations using OR conditions. 
+           Example: WHERE p.nombre ILIKE '%Lider%' OR p.nombre ILIKE '%Líder%'
         """
         
         response = self.client.chat.completions.create(
