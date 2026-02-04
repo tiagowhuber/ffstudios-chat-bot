@@ -12,6 +12,7 @@ from ..database.models import UserMessage, BotReply
 from ..services.inventory_service import add_ingredient, find_ingredient
 from ..services.smart_inventory_service import SmartInventoryService
 from .config import Config
+from .conversation_state import ConversationStateManager
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -133,11 +134,40 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         # If no basic response and smart inventory is available, try NLP processing
         if response is None and smart_inventory:
             try:
-                success, nlp_response = smart_inventory.process_natural_language_command(text)
+                # Check for pending action in conversation state
+                pending_action = ConversationStateManager.get_pending_action(context)
+                
+                # Process with smart inventory (may return a new pending action)
+                success, nlp_response, new_pending = smart_inventory.process_natural_language_command(
+                    text, 
+                    pending_action
+                )
+                
                 response = nlp_response
+                
+                # Update conversation state
+                if new_pending:
+                    # Store the new pending action and set state
+                    ConversationStateManager.set_pending_action(context, new_pending)
+                    
+                    # Determine the appropriate conversation state
+                    from .conversation_state import ConversationState
+                    if new_pending.action == "register_purchase":
+                        ConversationStateManager.set_state(context, ConversationState.AWAITING_PURCHASE_DETAILS)
+                    elif new_pending.action == "register_expense":
+                        ConversationStateManager.set_state(context, ConversationState.AWAITING_EXPENSE_DETAILS)
+                    elif new_pending.action == "register_usage":
+                        ConversationStateManager.set_state(context, ConversationState.AWAITING_USAGE_DETAILS)
+                else:
+                    # No pending action, clear state if action was completed
+                    if pending_action:
+                        ConversationStateManager.clear_pending_action(context)
+                
             except Exception as e:
                 logger.error(f"Error in smart inventory processing: {e}")
                 response = "Lo siento, encontré un error al procesar tu solicitud de inventario."
+                # Clear conversation state on error
+                ConversationStateManager.clear_pending_action(context)
         
         # Fallback response
         if response is None:
@@ -163,6 +193,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     except Exception as e:
         logger.error(f"Error handling message: {e}")
         await update.message.reply_text("Lo siento, encontré un error al procesar tu mensaje.")
+        # Clear conversation state on error
+        try:
+            ConversationStateManager.clear_pending_action(context)
+        except:
+            pass
 
 
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
