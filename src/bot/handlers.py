@@ -83,7 +83,7 @@ def handle_response(message: str) -> Optional[str]:
     message = message.lower()
     
     if any(word in message for word in ["hola", "hello", "hi", "buenas", "saludos"]):
-        return "¡Hola! Soy un bot de gestión de inventario de FFStudios \n\nPuedes decirme cosas como:\n• 'llegaron 2 kg de chocolate'\n• 'usé 500g de harina'\n• '¿cuánto azúcar tenemos?'"
+        return "¡Hola! Soy un bot de gestión de inventario de FFStudios \n\nPuedes decirme cosas como:\n• 'llegaron 2 kg de chocolate'\n• '¿cuánto azúcar compramos este año?'\n• '¿cuánto azúcar tenemos?'"
     elif any(word in message for word in ["cómo estás", "how are you", "qué tal"]):
         return "Solo soy un bot, ¡pero estoy funcionando como se esperaba! Listo para ayudarte a gestionar tu inventario. "
     elif any(word in message for word in ["adiós", "bye", "chao", "hasta luego"]):

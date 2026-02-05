@@ -1,0 +1,444 @@
+
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>ChatBot Logs - 2026-02-04 21:47</title>
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
+                .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+                h1 { color: #333; text-align: center; margin-bottom: 30px; }
+                .refresh-note { text-align: center; color: #666; font-size: 0.9em; margin-bottom: 20px; }
+                .conversation-item { border-bottom: 1px solid #eee; padding: 15px 0; display: flex; flex-direction: column; gap: 10px; }
+                
+                /* Messages */
+                .message-row { display: flex; flex-direction: column; max-width: 80%; }
+                .user-row { align-self: flex-end; align-items: flex-end; }
+                .bot-row { align-self: flex-start; align-items: flex-start; }
+                
+                .bubble { padding: 10px 15px; border-radius: 18px; line-height: 1.4; position: relative; word-wrap: break-word; }
+                .user-bubble { background-color: #0084ff; color: white; border-bottom-right-radius: 4px; }
+                .bot-bubble { background-color: #e4e6eb; color: black; border-bottom-left-radius: 4px; }
+                
+                /* Metadata */
+                .meta { font-size: 0.75em; color: #65676b; margin-top: 4px; }
+                .user-meta { text-align: right; }
+                .bot-meta { text-align: left; }
+                
+                .empty-logs { text-align: center; color: #888; padding: 40px; }
+                
+                /* Badge for message type */
+                .badge { font-size: 0.7em; background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 4px; margin-right: 5px; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Chat Session Logs</h1>
+                <div class="refresh-note">
+                    Generated on 2026-02-04 21:47:14 <br>
+                    Running against database: <code>postgres</code>
+                </div>
+        
+                <div class="conversation-item">
+                    <!-- User Message -->
+                    <div class="message-row user-row">
+                        <div class="bubble user-bubble">
+                            compré kitkat dark 4 paquetes en 5400. Cada paquete rinde 4 porciones.
+                        </div>
+                        <div class="meta user-meta">
+                            <span class="badge">private</span>
+                            Unknown • 2026-02-04 14:23:51
+                        </div>
+                    </div>
+            
+                    <!-- Bot Reply -->
+                    <div class="message-row bot-row">
+                        <div class="bubble bot-bubble">
+                             Compra registrada: 4 paquetes de kitkat dark por $5400 (None)
+                        </div>
+                        <div class="meta bot-meta">
+                             Bot • 2026-02-04 14:23:55
+                        </div>
+                    </div>
+                    </div>
+                <div class="conversation-item">
+                    <!-- User Message -->
+                    <div class="message-row user-row">
+                        <div class="bubble user-bubble">
+                            Registra compras de Lider 
+- Vino blanco 1 litro en $1790
+- Vino blanco 2 cajas de 2 litros en 6227
+                        </div>
+                        <div class="meta user-meta">
+                            <span class="badge">private</span>
+                            Unknown • 2026-02-04 14:37:58
+                        </div>
+                    </div>
+            
+                    <!-- Bot Reply -->
+                    <div class="message-row bot-row">
+                        <div class="bubble bot-bubble">
+                            No estoy seguro de lo que quisiste decir. Intenta ser más específico.
+                        </div>
+                        <div class="meta bot-meta">
+                             Bot • 2026-02-04 14:38:02
+                        </div>
+                    </div>
+                    </div>
+                <div class="conversation-item">
+                    <!-- User Message -->
+                    <div class="message-row user-row">
+                        <div class="bubble user-bubble">
+                            Compré en lider una caja de 1 litro de vino blanco en 1790
+                        </div>
+                        <div class="meta user-meta">
+                            <span class="badge">private</span>
+                            Unknown • 2026-02-04 21:57:38
+                        </div>
+                    </div>
+            
+                    <!-- Bot Reply -->
+                    <div class="message-row bot-row">
+                        <div class="bubble bot-bubble">
+                            Por favor indícame: medio de pago
+                        </div>
+                        <div class="meta bot-meta">
+                             Bot • 2026-02-04 21:57:42
+                        </div>
+                    </div>
+                    </div>
+                <div class="conversation-item">
+                    <!-- User Message -->
+                    <div class="message-row user-row">
+                        <div class="bubble user-bubble">
+                            debito
+                        </div>
+                        <div class="meta user-meta">
+                            <span class="badge">private</span>
+                            Unknown • 2026-02-04 21:58:02
+                        </div>
+                    </div>
+            
+                    <!-- Bot Reply -->
+                    <div class="message-row bot-row">
+                        <div class="bubble bot-bubble">
+                            ✅ Compra registrada: 1 liters de vino blanco por $1790 en Líder con Débito
+                        </div>
+                        <div class="meta bot-meta">
+                             Bot • 2026-02-04 21:58:03
+                        </div>
+                    </div>
+                    </div>
+                <div class="conversation-item">
+                    <!-- User Message -->
+                    <div class="message-row user-row">
+                        <div class="bubble user-bubble">
+                            compré con debito en lider 2 cajas de vino blanco de 2 litros en 6227
+                        </div>
+                        <div class="meta user-meta">
+                            <span class="badge">private</span>
+                            Unknown • 2026-02-04 21:58:50
+                        </div>
+                    </div>
+            
+                    <!-- Bot Reply -->
+                    <div class="message-row bot-row">
+                        <div class="bubble bot-bubble">
+                            ✅ Compra registrada: 2 cajas de vino blanco por $6227 en Líder con débito
+                        </div>
+                        <div class="meta bot-meta">
+                             Bot • 2026-02-04 21:58:54
+                        </div>
+                    </div>
+                    </div>
+                <div class="conversation-item">
+                    <!-- User Message -->
+                    <div class="message-row user-row">
+                        <div class="bubble user-bubble">
+                            compré con debito en lider 2 paquetes de servilletas (220 unidades por paquete) en 3580
+                        </div>
+                        <div class="meta user-meta">
+                            <span class="badge">private</span>
+                            Unknown • 2026-02-04 22:00:54
+                        </div>
+                    </div>
+            
+                    <!-- Bot Reply -->
+                    <div class="message-row bot-row">
+                        <div class="bubble bot-bubble">
+                            ✅ Compra registrada: 2 paquetes de servilletas por $3580 en Líder con débito
+                        </div>
+                        <div class="meta bot-meta">
+                             Bot • 2026-02-04 22:00:57
+                        </div>
+                    </div>
+                    </div>
+                <div class="conversation-item">
+                    <!-- User Message -->
+                    <div class="message-row user-row">
+                        <div class="bubble user-bubble">
+                            compré con debito en lider 12 unidades de agua mineral con gas en 9000
+                        </div>
+                        <div class="meta user-meta">
+                            <span class="badge">private</span>
+                            Unknown • 2026-02-04 22:02:02
+                        </div>
+                    </div>
+            
+                    <!-- Bot Reply -->
+                    <div class="message-row bot-row">
+                        <div class="bubble bot-bubble">
+                            ✅ Compra registrada: 12 pcs de agua mineral con gas por $9000 en Líder con débito
+                        </div>
+                        <div class="meta bot-meta">
+                             Bot • 2026-02-04 22:02:06
+                        </div>
+                    </div>
+                    </div>
+                <div class="conversation-item">
+                    <!-- User Message -->
+                    <div class="message-row user-row">
+                        <div class="bubble user-bubble">
+                            que precio tiene una unidad de agua mineral ?
+                        </div>
+                        <div class="meta user-meta">
+                            <span class="badge">private</span>
+                            Unknown • 2026-02-04 22:02:24
+                        </div>
+                    </div>
+            
+                    <!-- Bot Reply -->
+                    <div class="message-row bot-row">
+                        <div class="bubble bot-bubble">
+                            📦 'agua mineral con gas' (conf0.75): 12.00 pcs
+                        </div>
+                        <div class="meta bot-meta">
+                             Bot • 2026-02-04 22:02:27
+                        </div>
+                    </div>
+                    </div>
+                <div class="conversation-item">
+                    <!-- User Message -->
+                    <div class="message-row user-row">
+                        <div class="bubble user-bubble">
+                            en peso chile 1200?
+                        </div>
+                        <div class="meta user-meta">
+                            <span class="badge">private</span>
+                            Unknown • 2026-02-04 22:02:43
+                        </div>
+                    </div>
+            
+                    <!-- Bot Reply -->
+                    <div class="message-row bot-row">
+                        <div class="bubble bot-bubble">
+                            ¡Hola! Soy un bot de gestión de inventario de FFStudios <br><br>Puedes decirme cosas como:<br>• 'llegaron 2 kg de chocolate'<br>• 'usé 500g de harina'<br>• '¿cuánto azúcar tenemos?'
+                        </div>
+                        <div class="meta bot-meta">
+                             Bot • 2026-02-04 22:02:44
+                        </div>
+                    </div>
+                    </div>
+                <div class="conversation-item">
+                    <!-- User Message -->
+                    <div class="message-row user-row">
+                        <div class="bubble user-bubble">
+                            compre en ICB FOOD SERVICE mantequilla sin sal marca tonadita 5 kilos en 47600
+                        </div>
+                        <div class="meta user-meta">
+                            <span class="badge">private</span>
+                            Unknown • 2026-02-04 22:06:35
+                        </div>
+                    </div>
+            
+                    <!-- Bot Reply -->
+                    <div class="message-row bot-row">
+                        <div class="bubble bot-bubble">
+                            Por favor indícame: medio de pago
+                        </div>
+                        <div class="meta bot-meta">
+                             Bot • 2026-02-04 22:06:39
+                        </div>
+                    </div>
+                    </div>
+                <div class="conversation-item">
+                    <!-- User Message -->
+                    <div class="message-row user-row">
+                        <div class="bubble user-bubble">
+                            credito a 30 dias
+                        </div>
+                        <div class="meta user-meta">
+                            <span class="badge">private</span>
+                            Unknown • 2026-02-04 22:06:57
+                        </div>
+                    </div>
+            
+                    <!-- Bot Reply -->
+                    <div class="message-row bot-row">
+                        <div class="bubble bot-bubble">
+                            ✅ Compra registrada: 5 kg de mantequilla sin sal por $47600 en ICB FOOD SERVICE con Crédito
+                        </div>
+                        <div class="meta bot-meta">
+                             Bot • 2026-02-04 22:06:58
+                        </div>
+                    </div>
+                    </div>
+                <div class="conversation-item">
+                    <!-- User Message -->
+                    <div class="message-row user-row">
+                        <div class="bubble user-bubble">
+                            compre en ICB FOOD SERVICE Croissant 42 unidades en 96390
+                        </div>
+                        <div class="meta user-meta">
+                            <span class="badge">private</span>
+                            Unknown • 2026-02-04 22:08:58
+                        </div>
+                    </div>
+            
+                    <!-- Bot Reply -->
+                    <div class="message-row bot-row">
+                        <div class="bubble bot-bubble">
+                            Por favor indícame: medio de pago
+                        </div>
+                        <div class="meta bot-meta">
+                             Bot • 2026-02-04 22:09:00
+                        </div>
+                    </div>
+                    </div>
+                <div class="conversation-item">
+                    <!-- User Message -->
+                    <div class="message-row user-row">
+                        <div class="bubble user-bubble">
+                            credito a 30 dias
+                        </div>
+                        <div class="meta user-meta">
+                            <span class="badge">private</span>
+                            Unknown • 2026-02-04 22:09:11
+                        </div>
+                    </div>
+            
+                    <!-- Bot Reply -->
+                    <div class="message-row bot-row">
+                        <div class="bubble bot-bubble">
+                            ✅ Compra registrada: 42 pcs de Croissant por $96390 en ICB FOOD SERVICE con Crédito
+                        </div>
+                        <div class="meta bot-meta">
+                             Bot • 2026-02-04 22:09:12
+                        </div>
+                    </div>
+                    </div>
+                <div class="conversation-item">
+                    <!-- User Message -->
+                    <div class="message-row user-row">
+                        <div class="bubble user-bubble">
+                            que precio tiene un croissant
+                        </div>
+                        <div class="meta user-meta">
+                            <span class="badge">private</span>
+                            Unknown • 2026-02-04 22:09:17
+                        </div>
+                    </div>
+            
+                    <!-- Bot Reply -->
+                    <div class="message-row bot-row">
+                        <div class="bubble bot-bubble">
+                            No estoy seguro de lo que quisiste decir. Intenta ser más específico.
+                        </div>
+                        <div class="meta bot-meta">
+                             Bot • 2026-02-04 22:09:19
+                        </div>
+                    </div>
+                    </div>
+                <div class="conversation-item">
+                    <!-- User Message -->
+                    <div class="message-row user-row">
+                        <div class="bubble user-bubble">
+                            que precio tiene 1 unidad de croissant
+                        </div>
+                        <div class="meta user-meta">
+                            <span class="badge">private</span>
+                            Unknown • 2026-02-04 22:09:29
+                        </div>
+                    </div>
+            
+                    <!-- Bot Reply -->
+                    <div class="message-row bot-row">
+                        <div class="bubble bot-bubble">
+                            📦 Croissant: 42.00 pcs
+                        </div>
+                        <div class="meta bot-meta">
+                             Bot • 2026-02-04 22:09:31
+                        </div>
+                    </div>
+                    </div>
+                <div class="conversation-item">
+                    <!-- User Message -->
+                    <div class="message-row user-row">
+                        <div class="bubble user-bubble">
+                            corrige esa información. 42 unidades de croissant cuestan 96390. Cada unidad tiene un precio de 2295
+                        </div>
+                        <div class="meta user-meta">
+                            <span class="badge">private</span>
+                            Unknown • 2026-02-04 22:10:34
+                        </div>
+                    </div>
+            
+                    <!-- Bot Reply -->
+                    <div class="message-row bot-row">
+                        <div class="bubble bot-bubble">
+                            No entendí la acción solicitada.
+                        </div>
+                        <div class="meta bot-meta">
+                             Bot • 2026-02-04 22:10:36
+                        </div>
+                    </div>
+                    </div>
+                <div class="conversation-item">
+                    <!-- User Message -->
+                    <div class="message-row user-row">
+                        <div class="bubble user-bubble">
+                            hola
+                        </div>
+                        <div class="meta user-meta">
+                            <span class="badge">private</span>
+                            Unknown • 2026-02-05 00:46:48
+                        </div>
+                    </div>
+            
+                    <!-- Bot Reply -->
+                    <div class="message-row bot-row">
+                        <div class="bubble bot-bubble">
+                            ¡Hola! Soy un bot de gestión de inventario de FFStudios <br><br>Puedes decirme cosas como:<br>• 'llegaron 2 kg de chocolate'<br>• 'usé 500g de harina'<br>• '¿cuánto azúcar tenemos?'
+                        </div>
+                        <div class="meta bot-meta">
+                             Bot • 2026-02-05 00:46:50
+                        </div>
+                    </div>
+                    </div>
+                <div class="conversation-item">
+                    <!-- User Message -->
+                    <div class="message-row user-row">
+                        <div class="bubble user-bubble">
+                            cual es el inventario
+                        </div>
+                        <div class="meta user-meta">
+                            <span class="badge">private</span>
+                            Unknown • 2026-02-05 00:46:56
+                        </div>
+                    </div>
+            
+                    <!-- Bot Reply -->
+                    <div class="message-row bot-row">
+                        <div class="bubble bot-bubble">
+                            📦 **Inventario:**<br>• agua mineral con gas: 12.00 pcs<br>• Croissant: 42.00 pcs<br>• kitkat dark: 4.00 paquetes<br>• mantequilla sin sal: 5.00 kg<br>• servilletas: 2.00 paquetes<br>• vino blanco: 3.00 liters<br>
+                        </div>
+                        <div class="meta bot-meta">
+                             Bot • 2026-02-05 00:47:02
+                        </div>
+                    </div>
+                    </div>
+            </div>
+        </body>
+        </html>
+        
