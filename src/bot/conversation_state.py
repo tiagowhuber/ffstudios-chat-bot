@@ -15,6 +15,7 @@ class ConversationState(Enum):
     AWAITING_PURCHASE_DETAILS = "awaiting_purchase_details"
     AWAITING_EXPENSE_DETAILS = "awaiting_expense_details"
     AWAITING_USAGE_DETAILS = "awaiting_usage_details"
+    AWAITING_DELETION_SELECTION = "awaiting_deletion_selection"
 
 
 @dataclass
@@ -33,9 +34,14 @@ class PendingAction:
     payment_method: Optional[str] = None
     expense_category: Optional[str] = None
     reason: Optional[str] = None
+    search_term: Optional[str] = None
     
     # Missing fields that need to be collected
     missing_fields: list = None
+    
+    # Ambiguity resolution
+    candidates: Optional[Dict[str, str]] = None
+    selection_index: Optional[int] = None
     
     def __post_init__(self):
         if self.missing_fields is None:

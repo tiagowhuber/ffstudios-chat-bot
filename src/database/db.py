@@ -37,6 +37,11 @@ def init_database() -> None:
     if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
+    if DATABASE_URL:
+        # Mask password for logging
+        safe_url = DATABASE_URL.split("@")[-1] if "@" in DATABASE_URL else "..."
+        print(f"Using DATABASE_URL from environment (connecting to {safe_url})")
+
     if not DATABASE_URL:
         # Get database configuration from environment
         host = os.getenv("PGHOST", "localhost")

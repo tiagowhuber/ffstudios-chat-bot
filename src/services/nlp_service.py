@@ -27,6 +27,7 @@ class InventoryAction:
     expense_category: Optional[str] = None # 'luz', 'agua', 'arriendo', 'comida', etc.
     
     reason: Optional[str] = None # For usage/waste
+    search_term: Optional[str] = None # For finding items to delete
     
     confidence: float = 0.0
 
@@ -61,7 +62,7 @@ Analiza el mensaje del usuario y extrae la intención estructurada.
 
 SALIDA JSON (campos opcionales son null si no aplican):
 {
-  "action": "register_purchase" | "register_expense" | "register_usage" | "check_stock" | "finance_report" | "unknown",
+  "action": "register_purchase" | "register_expense" | "register_usage" | "check_stock" | "finance_report" | "delete_expense" | "unknown",
   "ingredient_name": string | null, // Para compras/uso/stock
   "quantity": number | null,
   "unit": string | null,
@@ -71,6 +72,7 @@ SALIDA JSON (campos opcionales son null si no aplican):
   "payment_method": string | null, // Débito, Crédito, Transferencia, Efectivo
   "expense_category": string | null, // Para gastos fijos (Luz, Agua, Internet)
   "reason": string | null, // Para uso/baja (e.g. "para un queque")
+  "search_term": string | null, // Para eliminar gasto (e.g. "kitkat")
   "confidence": number // 0.0 - 1.0
 }
 
@@ -92,6 +94,10 @@ DEFINICIONES DE ACCIÓN:
 
 5. "finance_report": Consultas sobre gastos financieros.
    Ej: "¿Cuánto le compramos a santa isabel este mes?", "¿Cuánto gastamos en luz?", "¿Detalle de gastos por proveedor?"
+
+6. "delete_expense": Eliminar un gasto o compra registrado incorrectamente.
+   Ej: "Elimina el gasto de kitkat"
+   -> action="delete_expense", search_term="kitkat"
 
 NOTAS:
 - Normaliza monedas: Si dice "8.000", es 8000.
@@ -126,6 +132,7 @@ NOTAS:
                 quantity=parsed_data.get("quantity"),
                 unit=parsed_data.get("unit"),
                 cost=parsed_data.get("cost"),
+                search_term=parsed_data.get("search_term"),
                 currency=parsed_data.get("currency"),
                 provider=parsed_data.get("provider"),
                 payment_method=parsed_data.get("payment_method"),

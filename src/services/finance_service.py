@@ -289,6 +289,59 @@ class FinanceService:
             logger.error(f"Error generating recent transactions report: {e}")
             return "Error al generar reporte."
 
+    def get_recent_expenses_for_deletion(self, search_term: str = None, limit: int = 5) -> List[Dict[str, Any]]:
+        """Get recent expenses as objects, optionally filtering by search term."""
+        try:
+            with get_db_session() as session:
+                query = session.query(
+                    Gasto.id,
+                    Gasto.fecha_compra,
+                    Gasto.monto,
+                    Gasto.observaciones,
+                    Gasto.cantidad_comprada,
+                    Categoria.nombre.label('categoria')
+                ).join(Categoria)
+                
+                if search_term:
+                    # Case insensitive search in observations or category
+                    term = f"%{search_term}%"
+                    query = query.filter(
+                        (Gasto.observaciones.ilike(term)) | 
+                        (Categoria.nombre.ilike(term))
+                    )
+                
+                results = query.order_by(Gasto.fecha_compra.desc()).limit(limit).all()
+                
+                expenses = []
+                for row in results:
+                    expenses.append({
+                        "id": str(row.id),
+                        "date": row.fecha_compra,
+                        "amount": row.monto,
+                        "description": row.observaciones,
+                        "category": row.categoria,
+                        "quantity": row.cantidad_comprada
+                    })
+                return expenses
+        except Exception as e:
+            logger.error(f"Error getting expenses for deletion: {e}")
+            return []
+
+    def delete_expense(self, expense_id: str) -> bool:
+        """Delete an expense by ID."""
+        try:
+            with get_db_session() as session:
+                gasto = session.query(Gasto).filter(Gasto.id == expense_id).first()
+                if gasto:
+                    session.delete(gasto)
+                    session.commit()
+                    logger.info(f"Deleted expense {expense_id}")
+                    return True
+                return False
+        except Exception as e:
+            logger.error(f"Error deleting expense: {e}")
+            return False
+
     def get_total_expenses_summary(self) -> str:
         """Report: Overall expenses summary."""
         try:

@@ -115,19 +115,34 @@ IMPORTANTE:
         try:
             # If there's a pending action, try to supplement it with this message
             if pending_action:
-                logger.info(f"Processing supplemental message for pending action: {pending_action.action}")
+                # SPECIAL HANDLING FOR DELETION SELECTION
+                if pending_action.action == "delete_expense" and pending_action.candidates:
+                    try:
+                        selection = int(message.strip())
+                        if selection == 0:
+                             return True, "❌ Operación cancelada. No se borró nada.", None
+                        if str(selection) in pending_action.candidates:
+                             pending_action.selection_index = selection
+                             pending_action.missing_fields = []
+                        else:
+                             return False, f"Opción inválida. Elige un número entre 0 y {len(pending_action.candidates)}.", pending_action
+                    except ValueError:
+                         return False, "Por favor, ingresa el NÚMERO de la opción que quieres eliminar (0 para cancelar).", pending_action
                 
-                # Parse the supplemental message
-                supplement_data = self.parse_supplemental_message(message, pending_action.missing_fields)
-                
-                # Merge with pending action
-                pending_action.merge_with_supplement(supplement_data)
-                
-                # Check if we still have missing fields
-                if pending_action.missing_fields:
-                    # Still missing some fields, ask again
-                    prompt = format_missing_fields_prompt(pending_action.missing_fields)
-                    return False, prompt, pending_action
+                else:
+                    logger.info(f"Processing supplemental message for pending action: {pending_action.action}")
+                    
+                    # Parse the supplemental message
+                    supplement_data = self.parse_supplemental_message(message, pending_action.missing_fields)
+                    
+                    # Merge with pending action
+                    pending_action.merge_with_supplement(supplement_data)
+                    
+                    # Check if we still have missing fields
+                    if pending_action.missing_fields:
+                        # Still missing some fields, ask again
+                        prompt = format_missing_fields_prompt(pending_action.missing_fields)
+                        return False, prompt, pending_action
                 
                 # All fields collected! Now execute the action
                 action = pending_action
@@ -149,7 +164,8 @@ IMPORTANTE:
                     'provider': action.provider,
                     'payment_method': action.payment_method,
                     'expense_category': action.expense_category,
-                    'reason': action.reason
+                    'reason': action.reason,
+                    'search_term': action.search_term
                 }
                 
                 # Check for missing required fields
@@ -169,6 +185,7 @@ IMPORTANTE:
                         payment_method=action.payment_method,
                         expense_category=action.expense_category,
                         reason=action.reason,
+                        search_term=action.search_term,
                         missing_fields=missing
                     )
                     
@@ -251,6 +268,46 @@ IMPORTANTE:
                 logger.info(f"Routing finance report question to Data Analyst: {message}")
                 result = self.data_analyst_service.generate_insight(message)
                 return True, result, None
+
+            elif action.action == "delete_expense":
+                # If we have a selection index, it means we are in the second step
+                if hasattr(action, 'selection_index') and action.selection_index is not None:
+                     idx = str(action.selection_index)
+                     if action.candidates and idx in action.candidates:
+                         uuid = action.candidates[idx]
+                         if self.finance_service.delete_expense(uuid):
+                             return True, "✅ Gasto eliminado correctamente.", None
+                         else:
+                             return True, "❌ Hubo un error al intentar eliminar el gasto.", None
+                     return False, "Selección inválida.", None
+
+                # First step: Search and ask
+                search_term = action.search_term
+                expenses = self.finance_service.get_recent_expenses_for_deletion(search_term)
+                
+                if not expenses:
+                    msg = f"No encontré gastos que contengan '{search_term}'." if search_term else "No hay gastos recientes para eliminar."
+                    return True, msg, None
+                
+                # Build candidates prompt
+                candidates = {}
+                prompt = f"Encontré estos gastos{' que contienen ' + search_term if search_term else ''}. Indícame cuál quieres borrar (número):\n"
+                prompt += "0. Cancelar\n"
+                
+                for i, expense in enumerate(expenses, 1):
+                    candidates[str(i)] = expense['id']
+                    date_fmt = expense['date'].strftime("%d/%m") if expense['date'] else ""
+                    prompt += f"{i}. {expense['description']} (${expense['amount']:,.0f}) [{date_fmt}]\n"
+                
+                # Create pending action
+                pending = PendingAction(
+                    action="delete_expense",
+                    original_message=message,
+                    missing_fields=["selection_index"],
+                    candidates=candidates
+                )
+                
+                return False, prompt, pending
 
             else:
                 return False, "No entendí la acción solicitada.", None
